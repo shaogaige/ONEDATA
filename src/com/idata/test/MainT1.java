@@ -1,6 +1,7 @@
 package com.idata.test;
 
 import com.idata.core.SuperObject;
+import com.idata.tool.RandomIDUtil;
 
 public class MainT1 {
 
@@ -18,11 +19,11 @@ public class MainT1 {
 				"    \"name\": \"Dinagat Islands\",\"age\":15,\"tt\":false,\"rr\":\"erere\"\r\n" + 
 				"  }\r\n" + 
 				"}";
-		so.setJSONString(jsons);
+		so.setJSONString(jsons,null,null,true);
 		System.out.println(so.getGeo_wkt());
-		System.out.println(so.getJSONString(""));
-		System.out.println(so.getJSONString("geojson"));
-
+		System.out.println(so.getJSONString("",null));
+		System.out.println(so.getJSONString("geojson",null));
+		System.out.println(RandomIDUtil.getUUID(""));
 	}
 
 }
