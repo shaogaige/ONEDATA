@@ -1,7 +1,9 @@
 package com.idata.server;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.idata.core.DataParam;
+import com.idata.cotrol.DataControl;
 
 /**
  * Servlet implementation class Data
@@ -34,8 +37,8 @@ public class Data extends HttpServlet {
 		//response.getWriter().append("Served at: ").append(request.getContextPath());
 		DataParam param = new DataParam();
 		//唯一标识
-		String id = request.getParameter("id");
-		param.setId(id);
+		String uid = request.getParameter("uid");
+		param.setUid(uid);
 		//数据库连接字符串
 		String con = request.getParameter("con");
 		param.setCon(con);
@@ -63,18 +66,24 @@ public class Data extends HttpServlet {
 			param.setJsondata(jsondata);
 		}
 		//字段名
-		String field = request.getParameter("field");
-		if(field != null) {
-			field = new String(field.getBytes("ISO8859-1"),"UTF-8");
-			field = URLDecoder.decode(field,"UTF-8");
-			param.setField(field);
+		String queryfields = request.getParameter("queryfields");
+		if(queryfields != null) {
+			queryfields = new String(queryfields.getBytes("ISO8859-1"),"UTF-8");
+			queryfields = URLDecoder.decode(queryfields,"UTF-8");
+			param.setQueryfields(queryfields);
+		}
+		String outfields = request.getParameter("outfields");
+		if(outfields != null) {
+			outfields = new String(outfields.getBytes("ISO8859-1"),"UTF-8");
+			outfields = URLDecoder.decode(outfields,"UTF-8");
+			param.setOutFields(outfields);
 		}
 		//查询关键字
-		String keyword = request.getParameter("keyword");
-		if(keyword != null) {
-			keyword = new String(keyword.getBytes("ISO8859-1"),"UTF-8");
-			keyword = URLDecoder.decode(keyword,"UTF-8");
-			param.setKeyword(keyword);
+		String keywords = request.getParameter("keywords");
+		if(keywords != null) {
+			keywords = new String(keywords.getBytes("ISO8859-1"),"UTF-8");
+			keywords = URLDecoder.decode(keywords,"UTF-8");
+			param.setKeywords(keywords);
 		}
 		//用户指定的查询范围
 		String bbox = request.getParameter("bbox");
@@ -125,6 +134,28 @@ public class Data extends HttpServlet {
 		param.setToken(token);
 		
 		
+		DataControl dataControl = new DataControl(); 
+		String result = dataControl.process(param);
+		
+		ByteArrayOutputStream bout = new ByteArrayOutputStream();
+		// 创建 GZIPOutputStream 对象
+        GZIPOutputStream gzipOut = new GZIPOutputStream(bout);
+        // 将响应的数据写到 Gzip 压缩流中
+        gzipOut.write(result.getBytes("UTF-8")); 
+        gzipOut.close(); // 将数据刷新到  bout 字节流数组
+		
+		//设置头
+		response.setCharacterEncoding("UTF-8");
+		response.setContentType("application/json;charset=utf-8");
+		response.setHeader("Access-Control-Allow-Origin", "*");
+		
+		//response.getWriter().write(result);
+		//设置GZIP压缩
+		response.setHeader("Content-Encoding", "gzip");
+		
+		response.getOutputStream().write(bout.toByteArray());
+		response.getOutputStream().flush();
+		response.getOutputStream().close();
 	}
 
 	/**

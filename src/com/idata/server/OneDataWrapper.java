@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.idata.core.OneDataServer;
+
 /**
  * Servlet implementation class OneDataWrapper
  */
@@ -28,6 +30,7 @@ public class OneDataWrapper extends HttpServlet {
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		// TODO Auto-generated method stub
+		OneDataServer.init();
 	}
 
 	/**
