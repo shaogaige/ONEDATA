@@ -65,6 +65,7 @@ public class HttpRequestUtil {
             System.out.println("发送GET请求出现异常！" + e);
             e.printStackTrace();
             LogUtil.error(e);
+            return null;
         } finally {
         	// 使用finally块来关闭输入流
             try {
@@ -119,6 +120,7 @@ public class HttpRequestUtil {
             System.out.println("发送 POST 请求出现异常！"+e);
             e.printStackTrace();
             LogUtil.error(e);
+            return null;
         } finally{
         	//使用finally块来关闭输出流、输入流
             try{
@@ -245,6 +247,7 @@ public class HttpRequestUtil {
 		} catch (Exception e) {
 			System.out.println("发送POST请求出现异常！");
 			e.printStackTrace();
+			return null;
 		} finally {
 			try {
 				if (out != null) {

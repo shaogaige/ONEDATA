@@ -16,9 +16,9 @@ import java.util.UUID;
 public class RandomIDUtil {
 	
 	
-	public static String getDate()
+	public static String getDate(String prefix)
 	{
-		String ID = "_";
+		String ID = prefix;
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
 		Date date=new Date();
 		ID += df.format(date);
@@ -26,9 +26,9 @@ public class RandomIDUtil {
 		  
 	}
 	
-	public static String getRandom()
+	public static String getRandom(String prefix)
 	{
-		String ID = "_";
+		String ID = prefix;
 		String[] chars = new String[] { "a", "b", "c", "d", "e", "f",
 							"g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s",
 							"t", "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5",
@@ -48,9 +48,15 @@ public class RandomIDUtil {
 		  
 	}
 	
-	public static String getUUID()
+	public static long getNumberID()
 	{
-		String ID = "_";
+		Date date=new Date();
+		return date.getTime();
+	}
+	
+	public static String getUUID(String prefix)
+	{
+		String ID = prefix;
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
 		Date date=new Date();
 		ID += df.format(date);

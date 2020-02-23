@@ -13,8 +13,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
-import sun.misc.BASE64Decoder;
-
 /**
  * Creater:SHAO Gaige
  * Description:AES加密算法
@@ -76,7 +74,7 @@ public class AESUtil {
      * @return 编码后的base 64 code 
      */  
     public static String base64Encode(byte[] bytes){  
-        return Base64.encodeBase64String(bytes);  
+        return Base64.encodeBase64URLSafeString(bytes);
     }  
   
     /** 
@@ -88,7 +86,7 @@ public class AESUtil {
     public static byte[] base64Decode(String base64Code){
     	try
     	{
-    		return StringUtils.isEmpty(base64Code) ? null : new BASE64Decoder().decodeBuffer(base64Code);
+    		return StringUtils.isEmpty(base64Code) ? null : Base64.decodeBase64(base64Code);
     	}
     	catch (Exception e) 
     	{

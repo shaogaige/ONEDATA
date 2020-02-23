@@ -8,6 +8,8 @@ import java.util.Properties;
 
 import org.wltea.analyzer.core.IKSegmenter;
 
+import com.idata.core.TableIndexWriter;
+
 public class PropertiesUtil {
 	
 	private static Properties systemProperties = new Properties();
@@ -24,7 +26,10 @@ public class PropertiesUtil {
 	    	systemProperties.load(in);
 	    	//System.out.println("已加载系统配置文件...");
 	    	//读取索引配置文件
-	    	String indexPath = getValue("SEARCH_INDEX_PATH");
+	    	
+	    	String path = PropertiesUtil.class.getClassLoader().getResource("config/config.properties").getPath();
+	    	File f = new File(path);
+	    	String indexPath = f.getParent();
 	    	//检测分词词典
 			if(existFile(indexPath,".dic"))
 			{
@@ -33,8 +38,8 @@ public class PropertiesUtil {
 				epath = epath.replaceAll("//", "/");
 				
 				//加载分词词典
-				IKSegmenter ikSeg = new IKSegmenter(new StringReader("河南数慧信息技术有限公司"),true,epath);
-				System.out.println(ikSeg.toString());
+				TableIndexWriter.ikSeg = new IKSegmenter(new StringReader("河南数慧信息技术有限公司"),true,epath);
+				//System.out.println(epath);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

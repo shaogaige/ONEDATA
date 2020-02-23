@@ -14,7 +14,7 @@ import java.util.Date;
  * Description:日期的编码器
  * Log:
  */
-public class DateCoder {
+public class DateCoder implements ICoder {
 	
 	private static int YEAR = 1;
 	private static int MONTH = 2;
@@ -40,7 +40,6 @@ public class DateCoder {
 		{
 			try 
 			{
-				date = date.replace("AD", "");
 				Date _date =df.parse(date);
 				now = Calendar.getInstance();
 				now.setTime(_date);
@@ -91,7 +90,6 @@ public class DateCoder {
 		}
 		
 		//System.out.println(cipher);
-		cipher += "AD";
 		return cipher;
 	}
 	
