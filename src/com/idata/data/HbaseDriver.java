@@ -4,7 +4,11 @@
  */
 package com.idata.data;
 
+import java.util.List;
+
 import com.idata.core.DataParam;
+import com.idata.core.SuperObject;
+import com.idata.tool.PropertiesUtil;
 
 /**
  * Creater:SHAO Gaige
@@ -19,7 +23,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean add(DataParam param) {
 		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	/* (non-Javadoc)
@@ -28,7 +32,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean edit(DataParam param) {
 		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	/* (non-Javadoc)
@@ -37,14 +41,14 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean delete(DataParam param) {
 		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	/* (non-Javadoc)
 	 * @see com.idata.data.IDataDriver#query(com.idata.core.DataParam)
 	 */
 	@Override
-	public String query(DataParam param) {
+	public List<SuperObject> query(DataParam param) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -53,9 +57,21 @@ public class HbaseDriver implements IDataDriver {
 	 * @see com.idata.data.IDataDriver#group(com.idata.core.DataParam)
 	 */
 	@Override
-	public String group(DataParam param) {
+	public List<SuperObject> group(DataParam param) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public List<SuperObject> getMeta(DataParam param) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isSupport() {
+		// TODO Auto-generated method stub
+		return Boolean.getBoolean(PropertiesUtil.getValue("HBASESUPPORT"));
 	}
 
 }

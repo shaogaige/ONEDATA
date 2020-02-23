@@ -4,7 +4,12 @@
  */
 package com.idata.data;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.idata.core.DataParam;
+import com.idata.core.SuperObject;
 
 /**
  * Creater:SHAO Gaige
@@ -12,6 +17,8 @@ import com.idata.core.DataParam;
  * Log:
  */
 public interface IDataDriver {
+	
+	public static Map<String,Long> resultSize = new ConcurrentHashMap<String,Long>();
 	
 	/**
 	 * 新增记录
@@ -39,13 +46,25 @@ public interface IDataDriver {
 	 * @param DataParam
 	 * @return String
 	 */
-	public String query(DataParam param);
+	public List<SuperObject> query(DataParam param);
 	
 	/**
 	 * 统计分析
 	 * @param DataParam
 	 * @return String
 	 */
-	public String group(DataParam param);
-
+	public List<SuperObject> group(DataParam param);
+	
+	/**
+	 * 获取元数据
+	 * @param DataParam
+	 * @return String
+	 */
+	public List<SuperObject> getMeta(DataParam param);
+	
+	/**
+	 * 是否支持此类型
+	 * @return boolean
+	 */
+	public boolean isSupport();
 }
