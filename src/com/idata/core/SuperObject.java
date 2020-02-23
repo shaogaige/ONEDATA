@@ -17,6 +17,8 @@ import org.geotools.geojson.geom.GeometryJSON;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.idata.tool.RandomIDUtil;
+import com.ojdbc.sql.Value;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -33,13 +35,24 @@ public class SuperObject {
 	private String type = "normal";
 	//属性信息
 	private Map<String,Value> properties = new LinkedHashMap<String,Value>();
+	private String properties_s = "";
 	//空间坐标数据
 	private Geometry geo;
 	private String geo_wkt = "";
 	
 	public String getOid() {
+		if(this.oid == null || "".equalsIgnoreCase(this.oid))
+		{
+			this.oid = RandomIDUtil.getUUID("");
+		}
 		return oid;
 	}
+	
+	public long getNumID()
+	{
+		return RandomIDUtil.getNumberID();
+	}
+	
 	public void setOid(String oid) {
 		this.oid = oid;
 	}
@@ -120,6 +133,14 @@ public class SuperObject {
 			{
 				feature.addProperty(key, v.getDouble_value());
 			}
+			else if(v.isIntValue())
+			{
+				feature.addProperty(key, v.getInt_value());
+			}
+			else if(v.isLongValue())
+			{
+				feature.addProperty(key, v.getLong_value());
+			}
 			else if(v.isBooleanValue())
 			{
 				feature.addProperty(key, v.getBoolean_value());
@@ -132,7 +153,7 @@ public class SuperObject {
 		return feature;
 	}
 	
-	public JsonObject getJSONObject(String out)
+	public JsonObject getJSONObject(String out,String geofield)
 	{
 		JsonObject feature = new JsonObject();
 		if("normal".equalsIgnoreCase(this.type))
@@ -159,23 +180,73 @@ public class SuperObject {
 			else
 			{
 				feature = getJson();
-				feature.addProperty("_geometry_", getGeo_wkt());
+				if(geofield == null || "".equalsIgnoreCase(geofield))
+				{
+					geofield = "_geometry_";
+				}
+				feature.addProperty(geofield, getGeo_wkt());
 			}
 		}
 		return feature;
 	}
 	
-	public String getJSONString(String out)
+	public String getJSONString(String out,String geofield)
 	{
-		return getJSONObject(out).toString();
+		if(this.properties_s == null || "".equalsIgnoreCase(this.properties_s))
+		{
+			this.properties_s = getJSONObject(out,geofield).toString();
+		}
+		return this.properties_s;
 	}
 	
-	public void setJSONString(String jsons)
+	public void setProperties(Map<String,Value> properties,String idfield,String geofield)
+	{
+		if(properties==null) 
+		{
+			return ;
+		}
+		if(idfield == null || "".equalsIgnoreCase(idfield))
+		{
+			idfield = "oid";
+		}
+		if(geofield == null || "".equalsIgnoreCase(geofield))
+		{
+			geofield = "_geometry_";
+		}
+		if(properties.get(idfield) != null)
+		{
+			this.oid = properties.get(idfield).getString_value();
+		}
+		if(properties.get(geofield) != null)
+		{
+			this.geo_wkt = properties.get(geofield).getString_value();
+			this.type = "spatial";
+		}
+		this.properties = properties;
+	}
+	
+	public void setJSONString(String jsons,String idfield,String geofield,boolean objectize)
 	{
 		if(jsons==null || "".equalsIgnoreCase(jsons)) 
 		{
 			return ;
 		}
+		
+		this.properties_s = jsons;
+		if(!objectize)
+		{
+			return ;
+		}
+		
+		if(idfield == null || "".equalsIgnoreCase(idfield))
+		{
+			idfield = "oid";
+		}
+		if(geofield == null || "".equalsIgnoreCase(geofield))
+		{
+			geofield = "_geometry_";
+		}
+		
 		this.properties = new LinkedHashMap<String,Value>();
 		JsonObject contents=new JsonParser().parse(jsons).getAsJsonObject();
 		if(contents.has("type") && "Feature".equalsIgnoreCase(contents.get("type").getAsString()))
@@ -197,6 +268,18 @@ public class SuperObject {
 			{
 				String key = entry.getKey();
 				//System.out.println(key);
+				if(key.equalsIgnoreCase(idfield))
+				{
+					if(entry.getValue().getAsString() != null)
+					{
+						this.oid = entry.getValue().getAsString();
+					}
+					else
+					{
+						this.oid = String.valueOf(entry.getValue().getAsNumber());
+					}
+				}
+				
 				if(entry.getValue().getAsJsonPrimitive().isString())
 				{
 					this.properties.put(key, new Value().setString_value(entry.getValue().getAsString()));
@@ -220,9 +303,8 @@ public class SuperObject {
 		{
 			for(Map.Entry<String, JsonElement> entry :contents.entrySet())
 			{
-				this.properties = new LinkedHashMap<String,Value>();
 				String key = entry.getKey();
-				if("id".equalsIgnoreCase(key) || "fid".equalsIgnoreCase(key))
+				if(key.equalsIgnoreCase(idfield))
 				{
 					if(entry.getValue().getAsString() != null)
 					{
@@ -233,7 +315,8 @@ public class SuperObject {
 						this.oid = String.valueOf(entry.getValue().getAsNumber());
 					}
 				}
-				if("geometry".equalsIgnoreCase(key) || "_geometry_".equalsIgnoreCase(key))
+				
+				if(geofield.equalsIgnoreCase(key) || "geometry".equalsIgnoreCase(key))
 				{
 					this.geo_wkt = entry.getValue().getAsString();
 				}

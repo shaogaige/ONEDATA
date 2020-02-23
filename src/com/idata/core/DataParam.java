@@ -4,6 +4,12 @@
  */
 package com.idata.core;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.prep.PreparedGeometry;
+import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
+
 /**
  * Creater:SHAO Gaige
  * Description:data接口参数模型
@@ -12,7 +18,7 @@ package com.idata.core;
 public class DataParam {
 	
 	//唯一标识
-	private String id = "";
+	private String uid = "";
 	//数据库连接字符串
 	private String con = "";
 	//数据库表名
@@ -26,14 +32,20 @@ public class DataParam {
 	private int count = Integer.MAX_VALUE;
 	//实体数据
 	private String jsondata = "";
-	//字段名称
-	private String field = "";
+	private JsonObject jsonobject = null;
+	//查询字段名称
+	private String queryfields = "";
+	//输出字段
+	private String outFields = "";
 	//关键字
-	private String keyword = "";
+	private String keywords = "";
 	//空间范围
 	private String bbox = "";
+	private Geometry filterGeometry = null;
+	//ID字段
+	private String idfield = null;
 	//空间字段
-	private String geofield = "";
+	private String geofield = null;
 	//空间操作
 	private String geoaction = "intersects";
 	//自定义SQL
@@ -49,11 +61,91 @@ public class DataParam {
 	//访问授权
 	private String token = "";
 	
-	public String getId() {
-		return id;
+	//路径
+	private String path = null;
+	//服务节点
+	private String server = null;
+	
+	private boolean isTokenValid()
+	{
+		return true;
 	}
-	public void setId(String id) {
-		this.id = id;
+	//错误信息内容
+	private String message = "请求参数出错！";
+	public boolean isValid()
+	{
+		if((uid == null || "".equalsIgnoreCase(uid)) && 
+			((con == null || "".equalsIgnoreCase(con)) &&
+			 (layer == null || "".equalsIgnoreCase(layer))))
+		{
+			this.message = "参数[id]和参数[con][layer]不能同时为空！";
+			return false;
+		}
+		if(operation == null || "".equalsIgnoreCase(operation))
+		{
+			this.message = "参数[operation]不能为空！";
+			return false;
+		}
+		else if(!"query".equalsIgnoreCase(operation) && !"getmeta".equalsIgnoreCase(operation) &&
+		  !"add".equalsIgnoreCase(operation) && !"edit".equalsIgnoreCase(operation) &&
+		  !"delete".equalsIgnoreCase(operation) && !"group".equalsIgnoreCase(operation))
+		{
+			this.message = "参数[operation]值错误！";
+			return false;
+		}
+		
+		if(jsondata !=null && !"".equalsIgnoreCase(jsondata))
+		{
+			try {
+				jsonobject = new JsonParser().parse(jsondata).getAsJsonObject();
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+				this.message = "参数[jsondata]值错误！";
+				return false;
+			}
+		}
+		
+		if(type == null || "".equalsIgnoreCase(type))
+		{
+			this.message = "参数[operation]不能为空！";
+			return false;
+		}
+		else if(!"table".equalsIgnoreCase(type) && !"index".equalsIgnoreCase(type) &&
+				!"hbase".equalsIgnoreCase(type))
+		{
+			this.message = "参数[type]值错误！";
+			return false;
+		}
+		
+		if(!"json".equalsIgnoreCase(out) && !"geojson".equalsIgnoreCase(out))
+		{
+			this.message = "参数[out]值错误！";
+			return false;
+		}
+		
+		if(!isTokenValid())
+		{
+			this.message = "参数[token]值错误！";
+			return false;
+		}
+		
+		return true;
+	}
+	public JsonObject getJsonobject() {
+		return jsonobject;
+	}
+	
+	public String getMessage() {
+		return message;
+	}
+
+	public String getUid() {
+		return uid;
+	}
+	public void setUid(String uid) {
+		this.uid = uid;
 	}
 	public String getCon() {
 		return con;
@@ -119,23 +211,48 @@ public class DataParam {
 	public void setJsondata(String jsondata) {
 		this.jsondata = jsondata;
 	}
-	public String getField() {
-		return field;
+	
+	public String getKeywords() {
+		return keywords;
 	}
-	public void setField(String field) {
-		this.field = field;
+	public void setKeywords(String keywords) {
+		this.keywords = keywords;
 	}
-	public String getKeyword() {
-		return keyword;
+	public String getQueryfields() {
+		return queryfields;
 	}
-	public void setKeyword(String keyword) {
-		this.keyword = keyword;
+	public void setQueryfields(String queryfields) {
+		this.queryfields = queryfields;
+	}
+	public String getOutFields() {
+		return outFields;
+	}
+	public void setOutFields(String outFields) {
+		this.outFields = outFields;
 	}
 	public String getBbox() {
 		return bbox;
 	}
 	public void setBbox(String bbox) {
 		this.bbox = bbox;
+	}
+	public Geometry getFilterGeometry() {
+		return filterGeometry;
+	}
+	public void setFilterGeometry(Geometry filterGeometry) {
+		this.filterGeometry = filterGeometry;
+	}
+	public PreparedGeometry getFilterPreparedGeometry() {
+		if(this.filterGeometry != null) {
+			return PreparedGeometryFactory.prepare(this.filterGeometry);
+		}
+		return null;
+	}
+	public String getIdfield() {
+		return idfield;
+	}
+	public void setIdfield(String idfield) {
+		this.idfield = idfield;
 	}
 	public String getGeofield() {
 		return geofield;
@@ -184,6 +301,24 @@ public class DataParam {
 	}
 	public void setToken(String token) {
 		this.token = token;
+	}
+	
+	public String getPath() {
+		return path;
+	}
+	public void setPath(String path) {
+		this.path = path;
+	}
+	public String getServer() {
+		return server;
+	}
+	public void setServer(String server) {
+		this.server = server;
+	}
+	public String toString()
+	{
+		return this.uid+";"+this.con+";"+this.layer+";"+this.operation+";"+this.queryfields+";"
+				+this.keywords+";"+this.bbox+";"+this.geoaction+";"+this.usersql;
 	}
 
 }

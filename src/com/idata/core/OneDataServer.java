@@ -6,39 +6,27 @@ package com.idata.core;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.spatial.SpatialStrategy;
-import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
-import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.context.SpatialContextFactory;
-import org.wltea.analyzer.core.IKSegmenter;
-import org.wltea.analyzer.lucene.IKAnalyzer;
 
-import com.idata.data.DataBaseHandle;
+import com.idata.cotrol.VisitControl.VisitLogModel;
 import com.idata.tool.IPAddressUtil;
 import com.idata.tool.LogUtil;
 import com.idata.tool.PropertiesUtil;
+import com.idata.tool.RandomIDUtil;
 /**
  * Creater:SHAO Gaige
  * Description:服务初始化类
@@ -46,45 +34,36 @@ import com.idata.tool.PropertiesUtil;
  */
 public class OneDataServer {
 	
-	//数据库处理
+	//数据库工具data&share
     public static DataBaseHandle SystemDBHandle = null;
+    //token&visit
+    public static DataBaseHandle SQLITEDBHandle = null;
 	//数据库表前缀
 	public static String TablePrefix = "";
 	//序列前缀
 	public static String SEQPrefix = "";
-	//日期格式化
-	public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	//服务节点
-	public static String CurrentIP = "localhost:8090/ONEDATA";
-	public static String[] ServerNodes;
-	public static Map<String,Integer> ServerIndex = new HashMap<String,Integer>();
-	public static String[] FilePaths;
+	public static String CurrentServerNode = "localhost:8090/ONEDATA";
+	//索引读写
+	public static Map<String,IndexReader> tableReader = new ConcurrentHashMap<String,IndexReader>();
+	public static Queue<String> tableOrder = new ConcurrentLinkedQueue<String>();
 	//备份节点
     public static boolean BackUp = false;
 	public static String ServerBackUp;
 	public static String FilePathBackUp;
-	//搜索节点
-	public static String SearchServer;
-	public static boolean isSearchNode = true;
-	//日志路径
+	//访问日志
+	public static boolean visitlog = true;
+	//异常日志路径
 	public static String logPath;
-	public static boolean log = false;
-	//索引读写
-    public static IndexWriter writer;
-	public static IndexSearcher searcher;
-	public static Analyzer analyzer;
-	public static Map<String,IndexReader> tableReader = new ConcurrentHashMap<String,IndexReader>();
-	public static Queue<String> tableOrder = new ConcurrentLinkedQueue<String>();
+	//日期格式化
+	public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	//访问次数缓存
 	public static Map<String,Long> visitCache = new ConcurrentHashMap<String,Long>();
-	//空间索引
-    public static SpatialContext ctx = SpatialContext.GEO;
-	public static SpatialStrategy strategy;
-	public static SpatialContextFactory fac = new SpatialContextFactory();
-	
+	public static ConcurrentLinkedQueue<VisitLogModel> visitorqueue = new ConcurrentLinkedQueue<VisitLogModel>();
 	//内部字符串AES加密秘钥
-	public final static String AESKEY = "ONEDATASTRINGENCKEY";
+	public final static String AESKEY = "ONEDATASTRENCKEY";
 	
+	//系统初始化
 	public static void init()
 	{
 		System.out.println("ONEDATA平台正在启动中...");
@@ -95,48 +74,40 @@ public class OneDataServer {
 		String url = PropertiesUtil.getValue("DataBaseURL");
 		String name = PropertiesUtil.getValue("UserName");
 		String password = PropertiesUtil.getValue("Password");
-		SystemDBHandle = new DataBaseHandle(url,name,password);
-		//initTable();
-		getServerNodes();
-		SearchServer = PropertiesUtil.getValue("SEARCH_INDEX_SERVER");
-		System.out.println("搜索服务节点:"+SearchServer);
-		if(SearchServer.equalsIgnoreCase(CurrentIP))
-		{
-			isSearchNode = true;
-		}
-		String indexPath = PropertiesUtil.getValue("SEARCH_INDEX_PATH");
-		System.out.println("INDEX Path: "+indexPath);
+		String sqlitepath = PropertiesUtil.getValue("SQLITEPATH");
 		try 
 		{
-			//创建Directory指定索引保存位置
-			Directory dir = FSDirectory.open(Paths.get(indexPath));
-			if(DirectoryReader.indexExists(dir))
-			{
-				IndexReader reader = DirectoryReader.open(dir);
-				searcher = new IndexSearcher(reader);
-			}
-			//使用IK进行分词
-			analyzer = new IKAnalyzer(true);
-			IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
-			//基于Directory创建IndexWriter
-			writer = new IndexWriter(dir, iwc);
-		} catch (IOException e) {
+			SystemDBHandle = new DataBaseHandle(url,name,password);
+			String sqliteurl = "jdbc:sqlite://"+sqlitepath;
+			SQLITEDBHandle = new DataBaseHandle(sqliteurl,null,null);
+			//初始化表
+			initTbales();
+			
+		} catch (Exception e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
+			System.out.println("配置的数据库连接不可用");
 		}
+		//初始化服务节点
+		initServerNode();
+		//初始化索引路径
+		String indexPath = PropertiesUtil.getValue("SERVER_INDEXPATH");
+		System.out.println("INDEX Path: "+indexPath);
+		//异常日志
 		logPath = PropertiesUtil.getValue("LOGFILE_PATH");
-		System.out.println("日志文件路径:"+logPath);
+		System.out.println("异常日志文件路径:"+logPath);
 		File logfile = new File(logPath + "/log.txt");
 		LogUtil.setLogFile(logfile);
-		String systemlog = PropertiesUtil.getValue("SYSTEM_LOG");
-		if("true".equalsIgnoreCase(systemlog))
+		//访问日志
+		String vlog = PropertiesUtil.getValue("VISIT_LOG");
+		if("true".equalsIgnoreCase(vlog))
 		{
-			log = true;
+			visitlog = true;
+			System.out.println("访问日志开启...");
 		}
 		else
 		{
-			System.out.println("记录操作日志未开启");
+			System.out.println("访问日志未开启!");
 		}
 		
 //		//初始化HBase
@@ -161,24 +132,46 @@ public class OneDataServer {
 //		HBaseUtils.create(configuration);
 //		System.out.println("HBase配置初始化成功");
 		
-		//空间索引
-		int maxLevels = 11;
-		SpatialPrefixTree grid = new GeohashPrefixTree(ctx, maxLevels);
-		strategy = new RecursivePrefixTreeStrategy(grid, "GEOMETRY_INDEX");
+		
 		
 		System.out.println("ONEDATA平台启动完成...");
 	}
-	
-	private static void getServerNodes()
+	//初始化表格
+	private static boolean initTbales()
 	{
-		String serverNodes = PropertiesUtil.getValue("SERVER_URL");
-		ServerNodes = serverNodes.split(",");
-		System.out.println("服务节点:"+serverNodes);
-		int size = ServerNodes.length;
-		for(int i=0;i<size;i++)
+		//postgresql
+		//ONEDATA_DATAINFO
+		if(!SystemDBHandle.isTableExist(OneDataServer.TablePrefix+"datainfo"))
 		{
-			ServerIndex.put(ServerNodes[i], i);
+			String sql = "create table "+OneDataServer.TablePrefix+"datainfo"+"(id varchar(25) primary key,con varchar(250),layer varchar(60),innersql varchar(250),datatype varchar(15),oidfield varchar(50),geofield varchar(50),encode varchar(10),support varchar(50),"
+					+ "indexpath varchar(150),hbasepath varchar(150),mapserver varchar(250),maptype varchar(15),remark varchar(250),regtime varchar(25),enable varchar(10),counts integer)";
+			SystemDBHandle.exeSQLCreate(sql);
 		}
+		//ONEDATA_SHAREINFO
+		if(!SystemDBHandle.isTableExist(OneDataServer.TablePrefix+"shareinfo"))
+		{
+			String sql = "create table "+OneDataServer.TablePrefix+"shareinfo"+"(id varchar(25) primary key,remark varchar(250),url varchar(500),operation varchar(10),token varchar(100),sharedate varchar(25))";
+			SystemDBHandle.exeSQLCreate(sql);
+		}
+		//sqlite
+		//ONEDATA_VISIT
+		if(!SQLITEDBHandle.isTableExist(OneDataServer.TablePrefix+"visit"))
+		{
+			String sql = "create table "+OneDataServer.TablePrefix+"visit"+"(ID INTEGER PRIMARY KEY AUTOINCREMENT,REQ_TIME TEXT,REQ_IP TEXT,REQ_SERVER TEXT,REQ_INTERFACE TEXT,REQ_KEYWORD TEXT,TOKEN TEXT,USERTYPE TEXT,RESULTS TEXT,REMARKS TEXT)";
+			SQLITEDBHandle.exeSQLCreate(sql);
+		}
+		//ONEDATA_TOKEN
+		if(!SQLITEDBHandle.isTableExist(OneDataServer.TablePrefix+"token"))
+		{
+			String sql = "create table "+OneDataServer.TablePrefix+"token"+"(TOKEN_ID TEXT PRIMARY KEY,TOKEN_PHONE TEXT,TOKEN_COMPANY TEXT,TOKEN_NAME TEXT,TOKEN_TYPE TEXT,TOKEN_VALUE TEXT,TOKEN_STATE TEXT,TOKEN_DATE TEXT,TOKEN_NEWDATE TEXT)";
+			SQLITEDBHandle.exeSQLCreate(sql);
+		}
+		return true;
+	}
+	//初始化服务节点
+	private static void initServerNode()
+	{
+		String ServerNode = PropertiesUtil.getValue("SERVER_URL");
 		//判断得到当前节点IP
 		String suburl = ":8090/ONEDATA";
 		String portproject = PropertiesUtil.getValue("PORTPROJECT");
@@ -186,26 +179,19 @@ public class OneDataServer {
 		{
 			suburl = portproject;
 		}
-		String initurl = PropertiesUtil.getValue("INITURL");
-		if(initurl != null && !"".equalsIgnoreCase(initurl))
-		{
-			CurrentIP = initurl;
-		}
+		
 		List<String>localIP = IPAddressUtil.getLocalIP();
 		int size2 = localIP.size();
 		for(int i=0;i<size2;i++)
 		{
 			String ip_m = localIP.get(i);
 			ip_m += suburl;
-			if(OneDataServer.ServerIndex.containsKey(ip_m)) 
+			if(ServerNode.equalsIgnoreCase(ip_m)) 
 			{
-				CurrentIP = ip_m; 
-				System.out.println("当前节点:"+CurrentIP);
+				CurrentServerNode = ip_m; 
+				System.out.println("当前节点:"+CurrentServerNode);
 			}
 		}
-		String filePaths = PropertiesUtil.getValue("SERVER_FILEPATH");
-		FilePaths = filePaths.split(",");
-		System.out.println("文件保存路径:"+filePaths);
 		
 		String flag = PropertiesUtil.getValue("BACKUP");
 		System.out.println("是否开启备份:"+flag);
@@ -229,44 +215,45 @@ public class OneDataServer {
 		return now.getTime();
 	}
 	
-	public static boolean reloadSystemIndex()
+	public static String getTableIndexPath(String table)
 	{
-		//读取配置
-		PropertiesUtil.init();
-		String indexPath = PropertiesUtil.getValue("SEARCH_INDEX_PATH");
-		
-		try {
-			Directory dir = FSDirectory.open(Paths.get(indexPath));
-			IndexReader reader = DirectoryReader.open(dir);
-			searcher = new IndexSearcher(reader);
-			
-			return true;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
+		String indexpath = PropertiesUtil.getValue("SERVER_INDEXPATH");
+		if(!indexpath.endsWith("/"))
+		{
+			indexpath += "/";
 		}
-		
+		Calendar now = Calendar.getInstance();
+		int year = now.get(Calendar.YEAR);
+		int month = now.get(Calendar.MONTH) + 1;
+		indexpath += year+"/"+month+"/";
+		String path = indexpath+table;
+		File file = new File(path);
+		if(file.exists())
+		{
+			path = indexpath+table+RandomIDUtil.getDate("_");
+			file = new File(path);
+		}
+		file.mkdirs();
+		return path;
 	}
 	
-	public static IndexSearcher getTableSeracher(String tableName)
+	public static IndexSearcher getTableSeracher(String path)
 	{
-		if(tableReader.containsKey(tableName))
+		if(tableReader.containsKey(path))
 		{
-			return  new IndexSearcher(tableReader.get(tableName));
+			return  new IndexSearcher(tableReader.get(path));
 		}
 		else
 		{
 			try 
 			{
-				String indexPath = PropertiesUtil.getValue("TABLES_INDEX_PATH") + "/" + tableName.trim();
-				Directory dir = FSDirectory.open(Paths.get(indexPath));
+				Directory dir = FSDirectory.open(Paths.get(path));
 				if(DirectoryReader.indexExists(dir))
 				{
 					IndexReader reader = DirectoryReader.open(dir);
 					IndexSearcher searcher = new IndexSearcher(reader);
-					tableReader.put(tableName, reader);
-					tableOrder.offer(tableName);
+					tableReader.put(path, reader);
+					tableOrder.offer(path);
 					return searcher;
 				}
 				else
