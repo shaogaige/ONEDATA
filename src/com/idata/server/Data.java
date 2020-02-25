@@ -36,6 +36,8 @@ public class Data extends HttpServlet {
 		// TODO Auto-generated method stub
 		//response.getWriter().append("Served at: ").append(request.getContextPath());
 		DataParam param = new DataParam();
+		//System.out.println(request.getQueryString());
+		param.setParam_String(request.getQueryString());
 		//唯一标识
 		String uid = request.getParameter("uid");
 		param.setUid(uid);
