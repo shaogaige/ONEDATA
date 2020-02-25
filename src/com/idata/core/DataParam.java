@@ -60,7 +60,11 @@ public class DataParam {
 	private String out = "json";
 	//访问授权
 	private String token = "";
+	//时间
+	private String time;
 	
+	//请求字符串
+	private String param_String = null;
 	//路径
 	private String path = null;
 	//服务节点
@@ -303,6 +307,15 @@ public class DataParam {
 		this.token = token;
 	}
 	
+	public String getTime() {
+		return time;
+	}
+	public void setTime(String time) {
+		this.time = time;
+	}
+	public void setParam_String(String param_String) {
+		this.param_String = param_String;
+	}
 	public String getPath() {
 		return path;
 	}
@@ -317,8 +330,7 @@ public class DataParam {
 	}
 	public String toString()
 	{
-		return this.uid+";"+this.con+";"+this.layer+";"+this.operation+";"+this.queryfields+";"
-				+this.keywords+";"+this.bbox+";"+this.geoaction+";"+this.usersql;
+		return this.param_String;
 	}
 
 }
