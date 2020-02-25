@@ -257,7 +257,7 @@ public class DataControl {
 	private String requestMain(DataParam param)
 	{
 		// 不是搜索节点，转发请求
-		String url = "http://" + param.getServer() + "/Data";
+		String url = "http://" + param.getServer() + "/Data?";
 		String result = HttpRequestUtil.sendPost(url, param.toString());
 		if(result == null)
 		{
