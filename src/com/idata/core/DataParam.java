@@ -33,12 +33,16 @@ public class DataParam {
 	//实体数据
 	private String jsondata = "";
 	private JsonObject jsonobject = null;
-	//查询字段名称
-	private String queryfields = "";
 	//输出字段
 	private String outFields = "";
+	//查询字段名称
+	private String queryfields = "";
+	//查询操作
+	private String queryoperates = "";
 	//关键字
 	private String keywords = "";
+	//查询操作关系
+	private String queryrelations = "";
 	//空间范围
 	private String bbox = "";
 	private Geometry filterGeometry = null;
@@ -65,9 +69,9 @@ public class DataParam {
 	
 	//请求字符串
 	private String param_String = null;
-	//路径
+	//路径,索引使用
 	private String path = null;
-	//服务节点
+	//服务节点,索引使用
 	private String server = null;
 	
 	private boolean isTokenValid()
@@ -222,11 +226,23 @@ public class DataParam {
 	public void setKeywords(String keywords) {
 		this.keywords = keywords;
 	}
+	public String getQueryrelations() {
+		return queryrelations;
+	}
+	public void setQueryrelations(String queryrelations) {
+		this.queryrelations = queryrelations;
+	}
 	public String getQueryfields() {
 		return queryfields;
 	}
 	public void setQueryfields(String queryfields) {
 		this.queryfields = queryfields;
+	}
+	public String getQueryoperates() {
+		return queryoperates;
+	}
+	public void setQueryoperates(String queryoperates) {
+		this.queryoperates = queryoperates;
 	}
 	public String getOutFields() {
 		return outFields;

@@ -16,6 +16,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -38,6 +40,8 @@ public class OneDataServer {
     public static DataBaseHandle SystemDBHandle = null;
     //token&visit
     public static DataBaseHandle SQLITEDBHandle = null;
+    //Hbase数据库
+    public static HbaseHandle hbaseHandle = null;
 	//数据库表前缀
 	public static String TablePrefix = "";
 	//序列前缀
@@ -110,29 +114,31 @@ public class OneDataServer {
 			System.out.println("访问日志未开启!");
 		}
 		
-//		//初始化HBase
-//		Configuration configuration = null;
-//		configuration = HBaseConfiguration.create();
-//        //必须配置1
-//        configuration.set("hbase.zookeeper.quorum", 
-//        		PropertiesUtil.getValue("hbase.zookeeper.quorum"));
-//        //必须配置2
-//        configuration.set("hbase.rootdir", "/");
-//        configuration.set("hbase.cluster.distributed", "true");
-//        configuration.set("zookeeper.session.timeout", 
-//        		PropertiesUtil.getValue("zookeeper.session.timeout"));
-//        configuration.set("hbase.hregion.majorcompaction", "0");
-//        configuration.set("hbase.regionserver.regionSplitLimit", "1");
-//        configuration.set("dfs.client.socket-timeout", 
-//        		PropertiesUtil.getValue("dfs.client.socket-timeout"));
-//        configuration.set("hbase.regionserver.handler.count", 
-//        		PropertiesUtil.getValue("hbase.regionserver.handler.count"));
-//		configuration.set("hbase.zookeeper.property.clientPort",
-//				PropertiesUtil.getValue("hbase.zookeeper.property.clientPort"));
-//		HBaseUtils.create(configuration);
-//		System.out.println("HBase配置初始化成功");
-		
-		
+		String hbasesupport = PropertiesUtil.getValue("HBASESUPPORT");
+		if("true".equalsIgnoreCase(hbasesupport))
+		{
+			//初始化HBase
+			Configuration configuration = null;
+			configuration = HBaseConfiguration.create();
+	        //必须配置1
+	        configuration.set("hbase.zookeeper.quorum", 
+	        		PropertiesUtil.getValue("hbase.zookeeper.quorum"));
+	        //必须配置2
+	        configuration.set("hbase.rootdir", "/");
+	        configuration.set("hbase.cluster.distributed", "true");
+	        configuration.set("zookeeper.session.timeout", 
+	        		PropertiesUtil.getValue("zookeeper.session.timeout"));
+	        configuration.set("hbase.hregion.majorcompaction", "0");
+	        configuration.set("hbase.regionserver.regionSplitLimit", "1");
+	        configuration.set("dfs.client.socket-timeout", 
+	        		PropertiesUtil.getValue("dfs.client.socket-timeout"));
+	        configuration.set("hbase.regionserver.handler.count", 
+	        		PropertiesUtil.getValue("hbase.regionserver.handler.count"));
+			configuration.set("hbase.zookeeper.property.clientPort",
+					PropertiesUtil.getValue("hbase.zookeeper.property.clientPort"));
+			hbaseHandle = new HbaseHandle(configuration);
+			System.out.println("HBase配置初始化成功");
+		}
 		
 		System.out.println("ONEDATA平台启动完成...");
 	}

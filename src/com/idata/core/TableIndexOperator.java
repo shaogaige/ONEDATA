@@ -15,6 +15,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
@@ -404,6 +405,12 @@ public class TableIndexOperator {
 					doc.add(sortfield);
 				}
 			}
+			
+			if(param.getQueryfields() != null && !"".equalsIgnoreCase(param.getQueryfields()))
+			{
+				Field filed = new TextField(param.getQueryfields(), param.getKeywords(), Field.Store.YES);
+				doc.add(filed);
+			}
 			return doc;
 		}
 		catch(Exception e)
@@ -436,17 +443,87 @@ public class TableIndexOperator {
 		if(keyWord != null && !"".equalsIgnoreCase(keyWord))
 		{
 			
-			String field = filter.getOutFields();
+			String field = filter.getQueryfields();
 			if(field == null || "".equalsIgnoreCase(field))
 			{
 				field = "ALL_JSON_DATA";
 			}
 			
-			Term term1 = new Term(field,keyWord);
-			Query query1 = new TermQuery(term1);
-			//builder_keyword.add(query1, Occur.MUST);
+			String[] qfields = filter.getQueryfields().split(",");
+			String[] qopers = filter.getQueryoperates().split(",");
+			String[] keywords = filter.getKeywords().split(",");
+			String[] qrelas = filter.getQueryrelations().split(",");
+			int length = qfields.length;
 			
-			builder_all.add(query1,Occur.MUST);
+			for(int i=0;i<length;i++)
+			{
+				String qoper = null;
+				Query query = null;
+				if((i>qopers.length-1) || "".equalsIgnoreCase(qopers[i]))
+				{
+					qoper = "=";
+				}
+				else
+				{
+					qoper = qopers[i];
+				}
+				if("=".equalsIgnoreCase(qoper))
+				{
+					Term term = new Term(qfields[i],keywords[i]);
+					query = new TermQuery(term);
+				}
+				else if(">".equalsIgnoreCase(qoper))
+				{
+					query = FloatPoint.newRangeQuery(qfields[i], FloatPoint.nextUp(Float.valueOf(keywords[i])), Float.MAX_VALUE);
+				}
+				else if("<".equalsIgnoreCase(qoper))
+				{
+					query = FloatPoint.newRangeQuery(qfields[i], Float.MIN_NORMAL,FloatPoint.nextDown(Float.valueOf(keywords[i])));
+				}
+				else if(">=".equalsIgnoreCase(qoper))
+				{
+					query = FloatPoint.newRangeQuery(qfields[i], Float.valueOf(keywords[i]), Float.MAX_VALUE);
+				}
+				else if("<=".equalsIgnoreCase(qoper))
+				{
+					query = FloatPoint.newRangeQuery(qfields[i], Float.MIN_NORMAL,Float.valueOf(keywords[i]));
+				}
+				else if("like".equalsIgnoreCase(qoper))
+				{
+					query = new WildcardQuery(new Term(qfields[i],"*"+keywords[i]+"*"));
+				}
+				else if("!=".equalsIgnoreCase(qoper))
+				{
+					Term term = new Term(qfields[i],keywords[i]);
+					query = new TermQuery(term);
+				}
+				else
+				{
+					Term term = new Term(qfields[i],keywords[i]);
+					query = new TermQuery(term);
+				}
+				
+				
+				//builder_keyword.add(query1, Occur.MUST);
+				
+				if((i>qrelas.length-1) || "".equalsIgnoreCase(qrelas[i]) || "and".equalsIgnoreCase(qrelas[i]))
+				{
+					if("!=".equalsIgnoreCase(qoper))
+					{
+						builder_all.add(query,Occur.MUST_NOT);
+					}
+					else
+					{
+						builder_all.add(query,Occur.MUST);
+					}
+					
+				}
+				else
+				{
+					builder_all.add(query,Occur.SHOULD);
+				}
+			}
+			
 		}
 	}
 	
@@ -458,13 +535,7 @@ public class TableIndexOperator {
 		{
 			BooleanQuery.Builder builder_keyword = new BooleanQuery.Builder();
 			
-			String field = filter.getOutFields();
-			if(field == null || "".equalsIgnoreCase(field))
-			{
-				field = "ALL_JSON_DATA";
-			}
-			
-			Term term1 = new Term(field,"*"+keyWord+"*");
+			Term term1 = new Term("ALL_JSON_DATA","*"+keyWord+"*");
 			Query query1 = new WildcardQuery(term1);
 			builder_keyword.add(query1, Occur.MUST);
 		}
@@ -736,9 +807,28 @@ public class TableIndexOperator {
 			{
 				if(k<count)
 				{
-					String data = doc.get("ALL_JSON_DATA");
 					SuperObject o = new SuperObject();
-					o.setJSONString(data, null, null, false);
+					//定义输出字段
+					if(filter.getOutFields() != null && !"".equalsIgnoreCase(filter.getOutFields()))
+					{
+						String[] ofields = filter.getOutFields().split(",");
+						for(int j=0;j<ofields.length;j++)
+						{
+							if(ofields[j].equalsIgnoreCase(filter.getGeofield()))
+							{
+								o.setGeo_wkt(doc.get("GEOMETRY_FIELD"));
+							}
+							else
+							{
+								o.addProperty(ofields[j],new Value().setString_value(doc.get(ofields[j])));
+							}
+						}
+					}
+					else
+					{
+						String data = doc.get("ALL_JSON_DATA");
+						o.setJSONString(data, null, null, false);
+					}
 					rs.add(o);
 				}
 				else
@@ -818,6 +908,7 @@ public class TableIndexOperator {
 				{
 					if(k<count)
 					{
+						//
 						String data = doc.get("ALL_JSON_DATA");
 						sb.append(data);
 						sb.append(",");

@@ -48,6 +48,11 @@ public class SuperObject {
 		return oid;
 	}
 	
+	public String getSourceId()
+	{
+		return oid;
+	}
+	
 	public long getNumID()
 	{
 		return RandomIDUtil.getNumberID();

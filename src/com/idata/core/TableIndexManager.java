@@ -34,7 +34,7 @@ public class TableIndexManager {
 	 * 删除索引
 	 * @param tableName
 	 */
-	public static void deleteTableIndex(String tableName)
+	public static boolean deleteTableIndex(String tableName)
 	{
 		try 
 		{
@@ -45,11 +45,12 @@ public class TableIndexManager {
 			OneDataServer.tableOrder.remove(tableName);
 			
 			File file = new File(PropertiesUtil.getValue("TABLES_INDEX_PATH")+"/"+tableName);
-			FileUtil.delFile(file);
+			return FileUtil.delFile(file);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		}
 	}
 
