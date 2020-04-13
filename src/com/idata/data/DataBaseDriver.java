@@ -106,7 +106,7 @@ public class DataBaseDriver implements IDataDriver {
 					{
 						continue;
 					}
-					
+					//？空间字段的处理?
 					sql += columnName+",";
 					values += "?,";
 					
@@ -153,7 +153,7 @@ public class DataBaseDriver implements IDataDriver {
 				{
 					continue;
 				}
-				
+				//?空间字段的处理？
 				sql += columnName+"=?,";
 				preparedParam.addParam(cur, data.getProperty(columnName));
 				cur++;
@@ -168,17 +168,45 @@ public class DataBaseDriver implements IDataDriver {
 				}
 				
 				String[] qfields = param.getQueryfields().split(",");
+				String[] qopers = param.getQueryoperates().split(",");
 				String[] keywords = param.getKeywords().split(",");
+				String[] qrelas = param.getQueryrelations().split(",");
 				for(int i=0;i<qfields.length;i++)
 				{
-					sql += " and "+qfields[i];
-					if(!keywords[i].contains("%"))
+					String qoper = null;
+					if((i>qopers.length-1) || "".equalsIgnoreCase(qopers[i]))
 					{
-						sql +="='"+keywords[i]+"'";
+						qoper = "=";
 					}
 					else
 					{
-						sql +="like'"+keywords[i]+"'";
+						qoper = qopers[i];
+					}
+					String qrela = null;
+					if((i>qrelas.length-1) || "".equalsIgnoreCase(qrelas[i]))
+					{
+						qrela = "and";
+					}
+					else
+					{
+						qrela = qrelas[i];
+					}
+					
+					sql += " "+qrela+" "+qfields[i];
+					if(!"like".equalsIgnoreCase(qoper))
+					{
+						if("=".equalsIgnoreCase(qoper) || "!=".equalsIgnoreCase(qoper))
+						{
+							sql += qoper+"'"+keywords[i]+"'";
+						}
+						else
+						{
+							sql += qoper+keywords[i];
+						}
+					}
+					else
+					{
+						sql += qoper+"'%"+keywords[i]+"%'";
 					}
 				}
 			}
@@ -220,17 +248,45 @@ public class DataBaseDriver implements IDataDriver {
 				}
 				
 				String[] qfields = param.getQueryfields().split(",");
+				String[] qopers = param.getQueryoperates().split(",");
 				String[] keywords = param.getKeywords().split(",");
+				String[] qrelas = param.getQueryrelations().split(",");
 				for(int i=0;i<qfields.length;i++)
 				{
-					sql += " and "+qfields[i];
-					if(!keywords[i].contains("%"))
+					String qoper = null;
+					if((i>qopers.length-1) || "".equalsIgnoreCase(qopers[i]))
 					{
-						sql +="='"+keywords[i]+"'";
+						qoper = "=";
 					}
 					else
 					{
-						sql +="like'"+keywords[i]+"'";
+						qoper = qopers[i];
+					}
+					String qrela = null;
+					if((i>qrelas.length-1) || "".equalsIgnoreCase(qrelas[i]))
+					{
+						qrela = "and";
+					}
+					else
+					{
+						qrela = qrelas[i];
+					}
+					
+					sql += " "+qrela+" "+qfields[i];
+					if(!"like".equalsIgnoreCase(qoper))
+					{
+						if("=".equalsIgnoreCase(qoper) || "!=".equalsIgnoreCase(qoper))
+						{
+							sql += qoper+"'"+keywords[i]+"'";
+						}
+						else
+						{
+							sql += qoper+keywords[i];
+						}
+					}
+					else
+					{
+						sql += qoper+"'%"+keywords[i]+"%'";
 					}
 				}
 				System.out.println("exeDeleteSQL:"+sql);
@@ -262,13 +318,56 @@ public class DataBaseDriver implements IDataDriver {
 			//查询参数的处理
 			if(param.getOutFields() == null || "".equalsIgnoreCase(param.getOutFields()))
 			{
-				//？geometry字段的处理？
 				sql = "select * from "+param.getLayer();
+				if(param.getGeofield() != null && !"".equalsIgnoreCase(param.getGeofield()))
+				{
+					List<SuperObject> rsd = this.getMeta(param);
+					sql = "select ";
+					for (int i = 0; i < rsd.size(); i++)
+					{
+						String field = rsd.get(i).getProperty("name").getString_value();
+						//geometry字段的处理
+						if (param.getGeofield().equalsIgnoreCase(field))
+						{
+							if(DBHandle.getConnectionString().contains("oracle"))
+							{
+								field = "sde.st_astext("+param.getGeofield()+") as GEOMETRY";
+							}
+							else if(DBHandle.getConnectionString().contains("postgresql"))
+							{
+								field = "ST_AsText("+param.getGeofield()+") as GEOMETRY";
+							}
+						}
+						sql += field + ",";
+					}
+					if (sql.endsWith(","))
+					{
+						sql = sql.substring(0, sql.length() - 1);
+					}
+					sql += " from " + param.getLayer();
+				}
 			}
 			else
 			{
-				//？geometry字段的处理？
+				//geometry字段的处理
 				sql = "select "+param.getOutFields()+" from "+param.getLayer();
+				if(param.getGeofield() != null && !"".equalsIgnoreCase(param.getGeofield()))
+				{
+					if(param.getOutFields().contains(param.getGeofield()))
+					{
+						String str = "";
+						if(DBHandle.getConnectionString().contains("oracle"))
+						{
+							str = "sde.st_astext("+param.getGeofield()+") as GEOMETRY";
+						}
+						else if(DBHandle.getConnectionString().contains("postgresql"))
+						{
+							str = "ST_AsText("+param.getGeofield()+") as GEOMETRY";
+						}
+						
+						sql.replace(param.getGeofield(), str);
+					}
+				}
 			}
 			
 			if(param.getQueryfields() != null && !"".equalsIgnoreCase(param.getQueryfields()))
@@ -279,17 +378,45 @@ public class DataBaseDriver implements IDataDriver {
 				}
 				
 				String[] qfields = param.getQueryfields().split(",");
+				String[] qopers = param.getQueryoperates().split(",");
 				String[] keywords = param.getKeywords().split(",");
+				String[] qrelas = param.getQueryrelations().split(",");
 				for(int i=0;i<qfields.length;i++)
 				{
-					sql += " and "+qfields[i];
-					if(!keywords[i].contains("%"))
+					String qoper = null;
+					if((i>qopers.length-1) || "".equalsIgnoreCase(qopers[i]))
 					{
-						sql +="='"+keywords[i]+"'";
+						qoper = "=";
 					}
 					else
 					{
-						sql +="like'"+keywords[i]+"'";
+						qoper = qopers[i];
+					}
+					String qrela = null;
+					if((i>qrelas.length-1) || "".equalsIgnoreCase(qrelas[i]))
+					{
+						qrela = "and";
+					}
+					else
+					{
+						qrela = qrelas[i];
+					}
+					
+					sql += " "+qrela+" "+qfields[i];
+					if(!"like".equalsIgnoreCase(qoper))
+					{
+						if("=".equalsIgnoreCase(qoper) || "!=".equalsIgnoreCase(qoper))
+						{
+							sql += qoper+"'"+keywords[i]+"'";
+						}
+						else
+						{
+							sql += qoper+keywords[i];
+						}
+					}
+					else
+					{
+						sql += qoper+"'%"+keywords[i]+"%'";
 					}
 				}
 			}
@@ -374,17 +501,45 @@ public class DataBaseDriver implements IDataDriver {
 				}
 				
 				String[] qfields = param.getQueryfields().split(",");
+				String[] qopers = param.getQueryoperates().split(",");
 				String[] keywords = param.getKeywords().split(",");
+				String[] qrelas = param.getQueryrelations().split(",");
 				for(int i=0;i<qfields.length;i++)
 				{
-					sql += " and "+qfields[i];
-					if(!keywords[i].contains("%"))
+					String qoper = null;
+					if((i>qopers.length-1) || "".equalsIgnoreCase(qopers[i]))
 					{
-						sql +="='"+keywords[i]+"'";
+						qoper = "=";
 					}
 					else
 					{
-						sql +="like'"+keywords[i]+"'";
+						qoper = qopers[i];
+					}
+					String qrela = null;
+					if((i>qrelas.length-1) || "".equalsIgnoreCase(qrelas[i]))
+					{
+						qrela = "and";
+					}
+					else
+					{
+						qrela = qrelas[i];
+					}
+					
+					sql += " "+qrela+" "+qfields[i];
+					if(!"like".equalsIgnoreCase(qoper))
+					{
+						if("=".equalsIgnoreCase(qoper) || "!=".equalsIgnoreCase(qoper))
+						{
+							sql += qoper+"'"+keywords[i]+"'";
+						}
+						else
+						{
+							sql += qoper+keywords[i];
+						}
+					}
+					else
+					{
+						sql += qoper+"'%"+keywords[i]+"%'";
 					}
 				}
 			}

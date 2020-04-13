@@ -7,6 +7,7 @@ package com.idata.data;
 import java.util.List;
 
 import com.idata.core.DataParam;
+import com.idata.core.HbaseOperator;
 import com.idata.core.SuperObject;
 import com.idata.tool.PropertiesUtil;
 
@@ -16,6 +17,8 @@ import com.idata.tool.PropertiesUtil;
  * Log:
  */
 public class HbaseDriver implements IDataDriver {
+	
+	private HbaseOperator hbaseOperator = new HbaseOperator();
 
 	/* (non-Javadoc)
 	 * @see com.idata.data.IDataDriver#add(com.idata.core.DataParam)
@@ -23,7 +26,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean add(DataParam param) {
 		// TODO Auto-generated method stub
-		return true;
+		return hbaseOperator.add(param);
 	}
 
 	/* (non-Javadoc)
@@ -32,7 +35,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean edit(DataParam param) {
 		// TODO Auto-generated method stub
-		return true;
+		return hbaseOperator.edit(param);
 	}
 
 	/* (non-Javadoc)
@@ -41,7 +44,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public boolean delete(DataParam param) {
 		// TODO Auto-generated method stub
-		return true;
+		return hbaseOperator.delete(param);
 	}
 
 	/* (non-Javadoc)
@@ -50,7 +53,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public List<SuperObject> query(DataParam param) {
 		// TODO Auto-generated method stub
-		return null;
+		return hbaseOperator.query(param);
 	}
 
 	/* (non-Javadoc)
@@ -59,7 +62,7 @@ public class HbaseDriver implements IDataDriver {
 	@Override
 	public List<SuperObject> group(DataParam param) {
 		// TODO Auto-generated method stub
-		return null;
+		return hbaseOperator.group(param);
 	}
 
 	@Override
