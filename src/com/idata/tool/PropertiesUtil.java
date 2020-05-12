@@ -36,6 +36,7 @@ public class PropertiesUtil {
 				System.out.println("检测到有用户自定义词典...");
 				String epath = indexPath+"//"+"ext_user.dic";
 				epath = epath.replaceAll("//", "/");
+				epath = epath.replaceAll("\\\\", "/");
 				
 				//加载分词词典
 				TableIndexWriter.ikSeg = new IKSegmenter(new StringReader("河南数慧信息技术有限公司"),true,epath);

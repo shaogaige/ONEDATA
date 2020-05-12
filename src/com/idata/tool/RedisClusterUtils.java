@@ -50,7 +50,7 @@ public class RedisClusterUtils{
         //jedis = new JedisCluster(hostAndPortsSet, 1, 1, 1, "面", jedisPoolConfig);
         //jedis.auth("密码");
     }
-    
+                      
     public JedisCluster getJedisCluster() {
     	return jedis;
     }
