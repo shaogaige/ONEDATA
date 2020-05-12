@@ -84,7 +84,7 @@ public class TokenControl {
 				
 				//写入数据库
 				//TOKEN_ID,TOKEN_PHONE,TOKEN_COMPANY,TOKEN_NAME,TOKEN_TYPE,TOKEN_VALUE,TOKEN_STATE,TOKEN_DATE,TOKEN_NEWDATE
-				String sql = "insert into TOKEN_DATA (TOKEN_ID,TOKEN_PHONE,TOKEN_COMPANY,TOKEN_NAME,TOKEN_TYPE,TOKEN_VALUE,TOKEN_STATE,TOKEN_DATE,TOKEN_NEWDATE) values(?,?,?,?,?,?,?,?,?)";
+				String sql = "insert into "+OneDataServer.TablePrefix+"token (TOKEN_ID,TOKEN_PHONE,TOKEN_COMPANY,TOKEN_NAME,TOKEN_TYPE,TOKEN_VALUE,TOKEN_STATE,TOKEN_DATE,TOKEN_NEWDATE) values(?,?,?,?,?,?,?,?,?)";
 		        PreparedParam preparedParam = new PreparedParam();
 		        
 		        Value value1 = new Value();
@@ -140,15 +140,15 @@ public class TokenControl {
 			{
 				if("0".equalsIgnoreCase(state))
 				{
-					sql = "select * from TOKEN_DATA where TOKEN_STATE='0'";
+					sql = "select * from "+OneDataServer.TablePrefix+"token where TOKEN_STATE='0'";
 				}
 				else if("1".equalsIgnoreCase(state))
 				{
-					sql = "select * from TOKEN_DATA where TOKEN_STATE='1'";
+					sql = "select * from "+OneDataServer.TablePrefix+"token where TOKEN_STATE='1'";
 				}
 				else
 				{
-					sql = "select * from TOKEN_DATA";
+					sql = "select * from "+OneDataServer.TablePrefix+"token";
 				}
 				
 				if(keyword != null && !"".equalsIgnoreCase(keyword))
@@ -202,7 +202,7 @@ public class TokenControl {
 			        	return null;
 			        }
 				}
-				sql = "select * from TOKEN_DATA where TOKEN_ID='"+token+"' or TOKEN_PHONE='"+token+"'";
+				sql = "select * from "+OneDataServer.TablePrefix+"token where TOKEN_ID='"+token+"' or TOKEN_PHONE='"+token+"'";
 			}
 			List<SuperObject> r = OneDataServer.SQLITEDBHandle.exeSQLSelect2(sql,start,count,null,null);
 	        if(r == null || r.size() < 1)
@@ -249,7 +249,7 @@ public class TokenControl {
 					}
 				}
 				
-				String sql = "select TOKEN_STATE from TOKEN_DATA where TOKEN_ID='"+token+"'";
+				String sql = "select TOKEN_STATE from "+OneDataServer.TablePrefix+"token where TOKEN_ID='"+token+"'";
 		        SQLResultSet r = OneDataServer.SQLITEDBHandle.exeSQLSelect(sql);
 		        if(r==null || r.getRowNum() < 1)
 		        {
@@ -272,18 +272,18 @@ public class TokenControl {
 		else if("pass".equalsIgnoreCase(operation))
 		{
 			String updateTime = DateCoder.df.format(new Date());
-			String sql = "update TOKEN_DATA set TOKEN_STATE='1',TOKEN_NEWDATE='"+updateTime+"' where TOKEN_ID='"+token+"'";
+			String sql = "update "+OneDataServer.TablePrefix+"token set TOKEN_STATE='1',TOKEN_NEWDATE='"+updateTime+"' where TOKEN_ID='"+token+"'";
 			return String.valueOf(OneDataServer.SQLITEDBHandle.exeSQLUpdate(sql));
 		}
 		else if("cancel".equalsIgnoreCase(operation))
 		{
 			String updateTime = DateCoder.df.format(new Date());
-			String sql = "update TOKEN_DATA set TOKEN_STATE='0',TOKEN_NEWDATE='"+updateTime+"' where TOKEN_ID='"+token+"'";
+			String sql = "update "+OneDataServer.TablePrefix+"token set TOKEN_STATE='0',TOKEN_NEWDATE='"+updateTime+"' where TOKEN_ID='"+token+"'";
 			return String.valueOf(OneDataServer.SQLITEDBHandle.exeSQLUpdate(sql));
 		}
 		else if("delete".equalsIgnoreCase(operation))
 		{
-			String sql = "delete from TOKEN_DATA where TOKEN_ID='"+token+"'";
+			String sql = "delete from "+OneDataServer.TablePrefix+"token where TOKEN_ID='"+token+"'";
 			return String.valueOf(OneDataServer.SQLITEDBHandle.exeSQLDelete(sql));
 		}
 		return null;
@@ -292,7 +292,7 @@ public class TokenControl {
 	
 	private boolean checkID(String id)
 	{
-		String sql = "select TOKEN_STATE from TOKEN_DATA where TOKEN_ID='"+id+"'";
+		String sql = "select TOKEN_STATE from "+OneDataServer.TablePrefix+"token where TOKEN_ID='"+id+"'";
         SQLResultSet r = OneDataServer.SQLITEDBHandle.exeSQLSelect(sql);
         if(r==null || r.getRowNum() < 1)
         {

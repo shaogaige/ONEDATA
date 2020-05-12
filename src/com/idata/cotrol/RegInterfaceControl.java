@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.idata.core.DataBaseHandle;
 import com.idata.core.DataParam;
+import com.idata.core.HbaseManager;
 import com.idata.core.OneDataServer;
 import com.idata.core.ResultBuilder;
 import com.idata.core.SuperObject;
@@ -82,8 +83,11 @@ public class RegInterfaceControl {
 			//内部处理
 			SuperObject temp = new SuperObject();
 			temp.setJSONString(param.getJsondata(), param.getIdfield(), param.getGeofield(),true);
+			if(temp.getProperty("uid") == null || "".equalsIgnoreCase(temp.getProperty("uid").getString_value()))
+			{
+				temp.addProperty("id", new Value().setString_value(RandomIDUtil.getUUID("")));
+			}
 			
-			temp.addProperty("id", new Value().setString_value(RandomIDUtil.getUUID("")));
 			if("shareinfo".equalsIgnoreCase(type))
 			{
 				temp.addProperty("sharedate", new Value().setString_value(OneDataServer.getCurrentTime()));
@@ -108,6 +112,7 @@ public class RegInterfaceControl {
 				else
 				{
 					temp.addProperty("enable", new Value().setString_value("true"));
+					temp.addProperty("counts", new Value().setInt_value(0));
 				}
 			}
 			
@@ -119,6 +124,11 @@ public class RegInterfaceControl {
 				{
 					TableIndexManager.createTableIndex(temp.getProperty("con").getString_value(), temp.getProperty("layer").getString_value(),
 							temp.getProperty("geofiled").getString_value(),temp.getProperty("indexpath").getString_value());
+				}
+				if(temp.getProperty("support").getString_value().contains("hbase"))
+				{
+					HbaseManager.importDataByThread(temp.getProperty("con").getString_value(), temp.getProperty("layer").getString_value(), 
+							temp.getProperty("idfiled").getString_value(), temp.getProperty("geofiled").getString_value(), temp.getProperty("hbasepath").getString_value(), true);
 				}
 				dataCon.cleanCountCache(param);
 				result = "{\"state\":true,\"message\":\"数据新增成功\",\"size\":0,\"data\":[]}";

@@ -4,6 +4,7 @@
  */
 package com.idata.cotrol;
 
+import com.idata.core.DataBaseHandle;
 import com.idata.core.OneDataServer;
 import com.idata.tool.AESUtil;
 
@@ -13,6 +14,29 @@ import com.idata.tool.AESUtil;
  * Log:
  */
 public class ConnectionControl {
+	
+	public String check(String data,String layer)
+	{
+		String encodeStr = getEncodeConStr(data);
+		try 
+		{
+			DataBaseHandle d = new DataBaseHandle(encodeStr);
+			boolean f = d.isTableExist(layer);
+			if(f)
+			{
+				return "{\"state\":true,\"message\":\"数据库连接串及表名验证通过\",\"size\":0,\"data\":[]}";
+			}
+			else
+			{
+				return "{\"state\":true,\"message\":\"数据库不存在该表\",\"size\":0,\"data\":[]}";
+			}
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			return "{\"state\":false,\"message\":\"数据库连接串不可用\",\"size\":0,\"data\":[]}";
+		}
+	}
 	
 	
 	public String getDecodeConStr(String data)
