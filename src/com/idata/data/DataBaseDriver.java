@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.idata.core.DataBaseHandle;
 import com.idata.core.DataParam;
+import com.idata.core.OneDataServer;
 import com.idata.core.SuperObject;
 import com.idata.tool.RandomIDUtil;
 import com.ojdbc.sql.PreparedParam;
@@ -46,7 +47,20 @@ public class DataBaseDriver implements IDataDriver {
 		else if(param.getUid() != null && !"".equalsIgnoreCase(param.getUid()))
 		{
 			//使用ID获取数据库连接
-			
+			String sql = "select * from "+OneDataServer.TablePrefix+"datainfo where id='"+param.getUid()+"'";
+			SQLResultSet rs = OneDataServer.SystemDBHandle.exeSQLSelect(sql);
+			if(rs != null)
+			{
+				String con = rs.getRow(0).getValue("con").getString_value();
+				try 
+				{
+					DBHandle = new DataBaseHandle(con);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return null;
+				}
+			}
 		}
 		return DBHandle;
 	}
@@ -106,11 +120,26 @@ public class DataBaseDriver implements IDataDriver {
 					{
 						continue;
 					}
-					//？空间字段的处理?
-					sql += columnName+",";
-					values += "?,";
-					
+					//空间字段的处理
+					if(columnName.equalsIgnoreCase(param.getGeofield()))
+					{
+						sql += columnName+",";
+						if(DBHandle.getConnectionString().contains("oracle"))
+						{
+							values += "sde.st_geometry(?,4326),";
+						}
+						else if(DBHandle.getConnectionString().contains("postgresql"))
+						{
+							values += "ST_GeomFromText(?, 4490),";
+						}
+					}
+					else
+					{
+						sql += columnName+",";
+						values += "?,";
+					}
 					preparedParam.addParam(index, v);
+					
 				}
 				index++;
 			}
@@ -144,7 +173,7 @@ public class DataBaseDriver implements IDataDriver {
 			String sql = "update "+param.getLayer()+" set ";
 			PreparedParam preparedParam = new PreparedParam();
 			int cur = 1;
-			//获取所有列名称??是否应该按上传的字段？
+			//获取所有列名称,应该按上传的字段
 			for(int i=0;i<size;i++)
 			{
 				String columnName = rsd.get(i).getProperty("name").getString_value();
@@ -153,8 +182,24 @@ public class DataBaseDriver implements IDataDriver {
 				{
 					continue;
 				}
-				//?空间字段的处理？
-				sql += columnName+"=?,";
+				//空间字段的处理
+				if(columnName.equalsIgnoreCase(param.getGeofield()))
+				{
+					sql += columnName+"";
+					if(DBHandle.getConnectionString().contains("oracle"))
+					{
+						sql += "=sde.st_geometry(?,4326),";
+					}
+					else if(DBHandle.getConnectionString().contains("postgresql"))
+					{
+						sql += "=ST_GeomFromText(?, 4490),";
+					}
+				}
+				else
+				{
+					sql += columnName+"=?,";
+				}
+				
 				preparedParam.addParam(cur, data.getProperty(columnName));
 				cur++;
 			}
@@ -312,8 +357,8 @@ public class DataBaseDriver implements IDataDriver {
 		try
 		{
 			//数据库连接处理
+			//使用id查询的处理
 			DBHandle = getDBHandle(param);
-			//使用id查询的如何处理？
 			String sql = null;
 			//查询参数的处理
 			if(param.getOutFields() == null || "".equalsIgnoreCase(param.getOutFields()))
