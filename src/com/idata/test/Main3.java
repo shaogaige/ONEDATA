@@ -10,7 +10,7 @@ public class Main3 {
 		// TODO Auto-generated method stub
 		ConnectionControl cc = new ConnectionControl();
 		//jdbc:sqlite://E:/shaogaige/iNote/iNoteRun/data/iNoteData.note
-		String s = cc.getEncodeConStr("postgresql,localhost:5432/postgres,postgres,admin");
+		String s = cc.getEncodeConStr("postgresql,localhost:5432/postgres,postgres,shao123456");
 		System.out.println(s);
 		//DataBaseHandle db = new DataBaseHandle(s);
 		
