@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.idata.cotrol.ConnectionControl;
 import com.idata.cotrol.RegInterfaceControl;
+import com.idata.tool.RandomIDUtil;
 
 /**
  * Servlet implementation class Process
@@ -40,6 +41,12 @@ public class Process extends HttpServlet {
 		if(data != null) {
 			data = new String(data.getBytes("ISO8859-1"),"UTF-8");
 			data = URLDecoder.decode(data,"UTF-8");
+		}
+		//表名
+		String layer = request.getParameter("layer");
+		if(layer != null) {
+			layer = new String(layer.getBytes("ISO8859-1"),"UTF-8");
+			layer = URLDecoder.decode(layer,"UTF-8");
 		}
 		String field = request.getParameter("field");
 		if(field == null || "".equalsIgnoreCase(field))
@@ -74,9 +81,13 @@ public class Process extends HttpServlet {
 			{
 			    result = conControl.getEncodeConStr(data);
 			}
-			else
+			else if("decode".equalsIgnoreCase(operation))
 			{
 				result = conControl.getDecodeConStr(data);
+			}
+			else if("check".equalsIgnoreCase(operation))
+			{
+				result = conControl.check(data, layer);
 			}
 			
 		}
@@ -85,10 +96,12 @@ public class Process extends HttpServlet {
 			RegInterfaceControl regInterCon = new RegInterfaceControl();
 			result = regInterCon.process(type, operation, data, field, value, start, count);
 		}
-		else if("token".equalsIgnoreCase(type))
+		else if("uuid".equalsIgnoreCase(type))
 		{
-			
+			String uuid = RandomIDUtil.getUUID("");
+			result = "{\"state\":true,\"message\":\"数据查询成功\",\"size\":"+1+",\"data\":"+uuid+"}";
 		}
+		
 		
 		
 		response.setCharacterEncoding("UTF-8");
