@@ -403,29 +403,33 @@ public class HbaseHandle {
 		TableName tableName = TableName.valueOf(tname);
 		try
 		{
-			//添加Hbase协处理器
-			admin.disableTable(tableName);
-			HTableDescriptor descriptor = admin.getTableDescriptor(tableName);
-	        String coprocessorClass = "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
-	        if (! descriptor.hasCoprocessor(coprocessorClass)) {
-	            descriptor.addCoprocessor(coprocessorClass);
-	        }
-	        admin.modifyTable(tableName, descriptor);
-	        admin.enableTable(tableName);
-	        //end
-			Table t = this.connection.getTable(tableName);
-			AggregationClient aggregationClient = new AggregationClient(configuration);
 			long size = 0;
-			try 
+			if(!IDataDriver.resultSize.containsKey(filter.toString()))
 			{
-				size = aggregationClient.rowCount(tableName, new LongColumnInterpreter(), scan);
-				aggregationClient.close();
-			} catch (Throwable e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-				aggregationClient.close();
+				//添加Hbase协处理器,耗时
+				admin.disableTable(tableName);
+				HTableDescriptor descriptor = admin.getTableDescriptor(tableName);
+		        String coprocessorClass = "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
+		        if (! descriptor.hasCoprocessor(coprocessorClass)) {
+		            descriptor.addCoprocessor(coprocessorClass);
+		        }
+		        admin.modifyTable(tableName, descriptor);
+		        admin.enableTable(tableName);
+		        //end
+		        AggregationClient aggregationClient = new AggregationClient(configuration);
+				try 
+				{
+					size = aggregationClient.rowCount(tableName, new LongColumnInterpreter(), scan);
+					aggregationClient.close();
+					System.out.println("size:"+size);
+				} catch (Throwable e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+					aggregationClient.close();
+				}
 			}
 			
+			Table t = this.connection.getTable(tableName);
 			//查询
 			ResultScanner rs = t.getScanner(scan);
 			List<SuperObject> so = new ArrayList<SuperObject>();
@@ -440,19 +444,29 @@ public class HbaseHandle {
 			int start = 0;
 			if(filter.getStart()>0 && filter.getStart()<=size) 
 			{
-				start = filter.getStart();
+				start = filter.getStart()-1;
 			}
 			
 			int count = (int) size;
-			if(filter.getCount()>0 && ((filter.getCount()+start)<size))
+			if(filter.getCount()>0)
 			{
-				count = filter.getCount()+start;
+				count = filter.getCount();
+				if((filter.getCount()+start)<size)
+				{
+					count = filter.getCount()+start;
+				}
+				
 			}
 			int k = 0;
 			long resultsize = size;
 			
-			for(Result r:rs)
+			while(true)
 			{
+				Result r = rs.next();
+				if(r == null)
+				{
+					break;
+				}
 				if(k >= start)
 				{
 					if(k<count)
@@ -462,7 +476,7 @@ public class HbaseHandle {
 						{
 							String colName = Bytes.toString(cell.getQualifierArray(),cell.getQualifierOffset(),cell.getQualifierLength());
 			                String value = Bytes.toString(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());
-			                
+			                //System.out.println(colName+":"+value);
 			                if("all_json_data".equalsIgnoreCase(colName))
 			                {
 			                	if(flag)
@@ -563,7 +577,10 @@ public class HbaseHandle {
 				                	}
 				                	else
 				                	{
-				                		s.addProperty(colName, new Value().setString_value(value));
+				                		if(filter.getOutFields().contains(colName))
+				                		{
+				                			s.addProperty(colName, new Value().setString_value(value));
+				                		}
 				                	}
 			                	}
 			                }

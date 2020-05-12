@@ -177,7 +177,11 @@ public class ResultBuilder extends ResultSetUtil{
 			sb.append(os.get(i).getJSONString(outFormat, null));
 			sb.append(",");
 		}
-		sb = sb.deleteCharAt(sb.length()-1);
+		if(size>0)
+		{
+			sb = sb.deleteCharAt(sb.length()-1);
+		}
+		
 		sb.append("]");
 		if("geojson".equalsIgnoreCase(outFormat))
 		{

@@ -50,9 +50,11 @@ public class HbaseImporter implements Runnable
 	private String geoField = null;
 	//Hbase中数据库名称
 	private String newTable = null;
+	//Hbase写入模式
+	private boolean creatAndAppend = true;
 	
 	
-	public HbaseImporter(String constring,String tableName,String idField,String geoField,String newTable)
+	public HbaseImporter(String constring,String tableName,String idField,String geoField,String newTable,boolean creatAndAppend)
 	{
 		String content = constring;
 		if(!constring.contains(","))
@@ -75,6 +77,7 @@ public class HbaseImporter implements Runnable
 		this.idField = idField;
 		this.geoField = geoField;
 		this.newTable = newTable;
+		this.creatAndAppend = creatAndAppend;
 	}
 	
 	
@@ -125,17 +128,32 @@ public class HbaseImporter implements Runnable
 				LogUtil.error("Table " + table + "不存在！");
 				return;
 			}
-			else
-			{
-				LogUtil.info("Table " + table + "正在导入数据...");
-			}
+			
 			//判断Hbase中表名是否存在
 			try
 			{
 				if (!OneDataServer.hbaseHandle.tableExists(newTable))
 				{
 					LogUtil.info("Hbase中目标表不存在.........");
-					return;
+					if(this.creatAndAppend)
+					{
+						LogUtil.info("Hbase中目标表创建中.........");
+						String[] cfamily = {"data","geo","out"};
+						boolean f = OneDataServer.hbaseHandle.createTable(newTable,cfamily);
+						if(f)
+						{
+							LogUtil.info("Hbase中目标表创建成功.........");
+						}
+						else
+						{
+							LogUtil.info("Hbase中目标表创建失败.........");
+						}
+					}
+					else
+					{
+						return;
+					}
+					
 				}
 			} 
 			catch (Exception e)
@@ -143,15 +161,14 @@ public class HbaseImporter implements Runnable
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
+			LogUtil.info("Table " + table + "正在导入数据...");
 			// 查询获取表中所有列名
 			String sql1 = "SELECT * from " + table;
-			SQLResultSet rs1 = databaseHandle.exeSQLSelect(sql1);
+			SQLResultSet rs1 = databaseHandle.exeSQLSelect(sql1,1,1);
 			// 遍历拼接查询sql语句
 			String sql2 = "select ";
-			for (int i = 0; i < rs1.getRowNum(); i++)
+			for (String value:rs1.getRow(0).getAllColumnName())
 			{
-				String value = rs1.getRow(i).getValue("COLUMN_NAME").getString_value();
 				if (value.equalsIgnoreCase(geometryField))
 				{
 					if(dataBaseURL.contains("oracle"))
@@ -194,8 +211,12 @@ public class HbaseImporter implements Runnable
 			while (rs2.next())
 			{
 				JsonObject feature = new JsonObject();
-				// 存入一组数据,键type,值为Feature
-				feature.addProperty("type", "Feature");
+				if(geoflag)
+				{
+					// 存入一组数据,键type,值为Feature
+					feature.addProperty("type", "Feature");
+				}
+				
 				JsonObject proper = new JsonObject();
 				
 				String id = null;
@@ -315,13 +336,13 @@ public class HbaseImporter implements Runnable
 						{
 							double value = rs2.getDouble(columnName);
 							proper.addProperty(columnName, value);
-							p.addColumn("data".getBytes(), columnName.getBytes(), Bytes.toBytes(value));
+							p.addColumn("data".getBytes(), columnName.getBytes(), Bytes.toBytes(String.valueOf(value)));
 						}
 						else if (type == Types.BOOLEAN || type == Types.BIT)
 						{
 							boolean value = rs2.getBoolean(columnName);
 							proper.addProperty(columnName, value);
-							p.addColumn("data".getBytes(), columnName.getBytes(), Bytes.toBytes(value));
+							p.addColumn("data".getBytes(), columnName.getBytes(), Bytes.toBytes(String.valueOf(value)));
 						}
 						else
 						{
@@ -329,7 +350,7 @@ public class HbaseImporter implements Runnable
 							if (value != null && !"".equalsIgnoreCase(value))
 							{
 								value = value.trim();
-								p.addColumn("data".getBytes(), columnName.getBytes(), value.getBytes());
+								p.addColumn("data".getBytes(), columnName.getBytes(), Bytes.toBytes(value));
 							}
 							if (value == null || "".equalsIgnoreCase(value.trim()))
 							{
@@ -339,9 +360,18 @@ public class HbaseImporter implements Runnable
 						}
 					}
 				}
-				feature.add("properties", proper);
-				//输出字段的处理
-				p.addColumn("out".getBytes(), "all_json_data".getBytes(),feature.toString().getBytes());
+				if(geoflag)
+				{
+					feature.add("properties", proper);
+					//输出字段的处理
+					p.addColumn("out".getBytes(), "all_json_data".getBytes(),Bytes.toBytes(feature.toString()));
+				}
+				else
+				{
+					p.addColumn("out".getBytes(), "all_json_data".getBytes(),Bytes.toBytes(proper.toString()));
+				}
+				
+				
 				
 				OneDataServer.hbaseHandle.put(newTable, p);
 			}

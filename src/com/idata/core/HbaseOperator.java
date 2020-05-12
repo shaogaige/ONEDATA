@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
@@ -161,7 +162,7 @@ public class HbaseOperator {
 			if(filter.getOutFields() == null || "".equalsIgnoreCase(filter.getOutFields()))
 			{
 				//全部输出
-				sc.addColumn("out".getBytes(), "all_json_data".getBytes());
+				sc.addColumn(Bytes.toBytes("out"), Bytes.toBytes("all_json_data"));
 			}
 			else
 			{
@@ -171,11 +172,11 @@ public class HbaseOperator {
 				{
 					if(filter.getGeofield() != null && filter.getGeofield().equalsIgnoreCase(fileds[i]))
 					{
-						sc.addColumn("geo".getBytes(), fileds[i].getBytes());
+						sc.addColumn(Bytes.toBytes("geo"), Bytes.toBytes(fileds[i]));
 					}
 					else
 					{
-						sc.addColumn("data".getBytes(), fileds[i].getBytes());
+						sc.addColumn(Bytes.toBytes("data"), Bytes.toBytes(fileds[i]));
 					}
 				}
 			}
@@ -186,7 +187,7 @@ public class HbaseOperator {
 			sc.addColumn("data".getBytes(), filter.getGroupfield().getBytes());
 			if(filter.getSumfield() != null && !"".equalsIgnoreCase(filter.getSumfield()))
 			{
-				sc.addColumn("data".getBytes(), filter.getSumfield().getBytes());
+				sc.addColumn(Bytes.toBytes("data"), Bytes.toBytes(filter.getSumfield()));
 			}
 		}
 		
@@ -209,6 +210,9 @@ public class HbaseOperator {
 			
 			for(int i=0;i<qfields.length;i++)
 			{
+				//查询字段必须包括在返回字段中
+				sc.addColumn(Bytes.toBytes("data"), Bytes.toBytes(qfields[i]));
+				
 				SingleColumnValueFilter f = null;
 				if("=".equalsIgnoreCase(qopers[i]))
 				{
@@ -219,7 +223,7 @@ public class HbaseOperator {
 				else if(">".equalsIgnoreCase(qopers[i]))
 				{
 					f = new SingleColumnValueFilter(Bytes.toBytes("data"),Bytes.toBytes(qfields[i]),
-							CompareOp.GREATER,Bytes.toBytes(keywords[i]));
+							CompareOp.GREATER,new BinaryComparator(Bytes.toBytes(keywords[i])));
 					f.setFilterIfMissing(true);
 				}
 				else if("<".equalsIgnoreCase(qopers[i]))
@@ -343,31 +347,31 @@ public class HbaseOperator {
 			// 属性字段
 			if(v.isStringValue())
 			{
-				p.addColumn("data".getBytes(), key.getBytes(), v.getString_value().getBytes());
+				p.addColumn(Bytes.toBytes("data"), Bytes.toBytes(key), Bytes.toBytes(v.getString_value()));
 			}
 			else if(v.isDoubleValue())
 			{
-				p.addColumn("data".getBytes(),key.getBytes(), Bytes.toBytes(v.getDouble_value()));
+				p.addColumn(Bytes.toBytes("data"),Bytes.toBytes(key), Bytes.toBytes(v.getDouble_value()));
 			}
 			else if(v.isIntValue())
 			{
-				p.addColumn("data".getBytes(),key.getBytes(), Bytes.toBytes(v.getInt_value()));
+				p.addColumn(Bytes.toBytes("data"),Bytes.toBytes(key), Bytes.toBytes(v.getInt_value()));
 			}
 			else if(v.isLongValue())
 			{
-				p.addColumn("data".getBytes(),key.getBytes(), Bytes.toBytes(v.getLong_value()));
+				p.addColumn(Bytes.toBytes("data"),Bytes.toBytes(key), Bytes.toBytes(v.getLong_value()));
 			}
 			else if(v.isBooleanValue())
 			{
-				p.addColumn("data".getBytes(),key.getBytes(), Bytes.toBytes(v.getBoolean_value()));
+				p.addColumn(Bytes.toBytes("data"),Bytes.toBytes(key), Bytes.toBytes(v.getBoolean_value()));
 			}
 			else
 			{
-				p.addColumn("data".getBytes(),key.getBytes(), Bytes.toBytes(v.getString_value()));
+				p.addColumn(Bytes.toBytes("data"),Bytes.toBytes(key), Bytes.toBytes(v.getString_value()));
 			}
 		}
 		//输出字段的处理
-		p.addColumn("out".getBytes(), "all_json_data".getBytes(),data.getJSONString("geojson", filter.getGeofield()).getBytes());
+		p.addColumn(Bytes.toBytes("out"), Bytes.toBytes("all_json_data"),Bytes.toBytes(data.getJSONString("geojson", filter.getGeofield())));
 		//空间字段的处理
 		if("spatial".equalsIgnoreCase(data.getType()))
 		{

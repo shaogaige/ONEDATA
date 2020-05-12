@@ -852,80 +852,77 @@ public class TableIndexOperator {
 		int size = hits.length;
 		System.out.println("size:"+size);
 		StringBuffer sb = new StringBuffer("");
-		if("geojson".equalsIgnoreCase(filter.getOut()))
+		sb.append("{\"state\":true,\"data\":[");
+		//返回详细信息
+		int start = 0;
+		if(filter.getStart()>0 && filter.getStart()<=size) 
 		{
-			sb.append("{\"state\":true,\"data\":[");
-			//返回详细信息
-			int start = 0;
-			if(filter.getStart()>0 && filter.getStart()<=size) 
-			{
-				start = filter.getStart();
-			}
-			
-			int count = size;
-			if(filter.getCount()>0 && ((filter.getCount()+start)<size))
-			{
-				count = filter.getCount()+start;
-			}
-			PreparedGeometry mainGeo = filter.getFilterPreparedGeometry();
-			String spatialRelation = filter.getGeoaction();
-			//耗时
-			int k = 0;
-			int resultsize = size;
-			for(int i=0;i<size;i++)
-			{
-				Document doc = searcher.doc(hits[i].doc);
-				if(mainGeo != null)
-				{
-					Geometry geo = OGCWKTReader.read(doc.get("GEOMETRY_FIELD"));
-					if("Intersects".equalsIgnoreCase(spatialRelation))
-					{
-						if(!mainGeo.intersects(geo))
-						{
-							resultsize--;
-							continue;
-						}
-					}
-					else if("Contains".equalsIgnoreCase(spatialRelation))
-					{
-						if(!mainGeo.contains(geo))
-						{
-							resultsize--;
-							continue;
-						}
-					}
-					else if("Within".equalsIgnoreCase(spatialRelation))
-					{
-						if(!mainGeo.within(geo))
-						{
-							resultsize--;
-							continue;
-						}
-					}
-				}
-				k++;
-				if(k >= start)
-				{
-					if(k<count)
-					{
-						//
-						String data = doc.get("ALL_JSON_DATA");
-						sb.append(data);
-						sb.append(",");
-					}
-					else
-					{
-						break;
-					}
-				}
-			}
-			if(',' == sb.charAt(sb.length()-1))
-			{
-				sb = sb.deleteCharAt(sb.length()-1);
-			}
-			sb.append("],\"resultsize\":\""+resultsize+"\"");
-			sb.append("}");
+			start = filter.getStart();
 		}
+		
+		int count = size;
+		if(filter.getCount()>0 && ((filter.getCount()+start)<size))
+		{
+			count = filter.getCount()+start;
+		}
+		PreparedGeometry mainGeo = filter.getFilterPreparedGeometry();
+		String spatialRelation = filter.getGeoaction();
+		//耗时
+		int k = 0;
+		int resultsize = size;
+		for(int i=0;i<size;i++)
+		{
+			Document doc = searcher.doc(hits[i].doc);
+			if(mainGeo != null)
+			{
+				Geometry geo = OGCWKTReader.read(doc.get("GEOMETRY_FIELD"));
+				if("Intersects".equalsIgnoreCase(spatialRelation))
+				{
+					if(!mainGeo.intersects(geo))
+					{
+						resultsize--;
+						continue;
+					}
+				}
+				else if("Contains".equalsIgnoreCase(spatialRelation))
+				{
+					if(!mainGeo.contains(geo))
+					{
+						resultsize--;
+						continue;
+					}
+				}
+				else if("Within".equalsIgnoreCase(spatialRelation))
+				{
+					if(!mainGeo.within(geo))
+					{
+						resultsize--;
+						continue;
+					}
+				}
+			}
+			k++;
+			if(k >= start)
+			{
+				if(k<count)
+				{
+					//
+					String data = doc.get("ALL_JSON_DATA");
+					sb.append(data);
+					sb.append(",");
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		if(',' == sb.charAt(sb.length()-1))
+		{
+			sb = sb.deleteCharAt(sb.length()-1);
+		}
+		sb.append("],\"resultsize\":\""+resultsize+"\"");
+		sb.append("}");
 		return sb.toString();
 	}
 	

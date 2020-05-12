@@ -63,7 +63,7 @@ public class VisitLogThread implements Runnable {
 		}
         
         //REQ_TIME varchar2(50),REQ_IP varchar2(50),REQ_SERVER varchar2(20),REQ_INTERFACE varchar2(20),REQ_KEYWORD varchar2(150),TOKEN varchar2(60),USERTYPE varchar2(10),RESULTS varchar2(100),REMARKS varchar2(50)
-        String sql = "insert into "+PropertiesUtil.getValue("VisitorLogTable")+" (REQ_TIME,REQ_IP,REQ_SERVER,REQ_INTERFACE,REQ_KEYWORD,TOKEN,USERTYPE,RESULTS,REMARKS) values(?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into "+OneDataServer.TablePrefix+PropertiesUtil.getValue("VisitorLogTable")+" (REQ_TIME,REQ_IP,REQ_SERVER,REQ_INTERFACE,REQ_KEYWORD,TOKEN,USERTYPE,RESULTS,REMARKS) values(?,?,?,?,?,?,?,?,?)";
         boolean f = OneDataServer.SQLITEDBHandle.exePreparedBatchSQL(sql, params);
         //更新次数
         

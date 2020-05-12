@@ -17,9 +17,14 @@ public class HbaseManager {
 		return OneDataServer.hbaseHandle.createTable(tableName, fields); 
 	}
 	
-	public static void importData(String constring,String tableName,String idField,String geoField,String newTable)
+	public static void importData(String constring,String tableName,String idField,String geoField,String newTable,boolean createAndAppend)
 	{
-		Thread thread = new Thread(new HbaseImporter(constring,tableName,idField,geoField,newTable));
+		HbaseImporter p = new HbaseImporter(constring,tableName,idField,geoField,newTable,createAndAppend);
+		p.write();
+	}
+	public static void importDataByThread(String constring,String tableName,String idField,String geoField,String newTable,boolean createAndAppend)
+	{
+		Thread thread = new Thread(new HbaseImporter(constring,tableName,idField,geoField,newTable,createAndAppend));
 		thread.start();
 	}
 	

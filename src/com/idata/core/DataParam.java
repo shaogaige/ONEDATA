@@ -346,6 +346,13 @@ public class DataParam {
 	}
 	public String toString()
 	{
+		if(this.param_String == null || "".equalsIgnoreCase(this.param_String))
+		{
+			this.param_String = this.uid+"&"+this.con+"&"+this.layer+"&"+this.operation+"&"+this.start_s+"&"+this.count_s+"&"+this.outFields+
+					"&"+this.queryfields+"&"+this.queryoperates+"&"+this.keywords+"&"+this.queryrelations+"&"+this.bbox+"&"+this.idfield+
+					"&"+this.geofield+"&"+this.geoaction+"&"+this.usersql+"&"+this.sumfield+"&"+this.groupfield+"&"+this.type+"&"+this.out+
+					"&"+this.token+"&"+this.time;
+		}
 		return this.param_String;
 	}
 

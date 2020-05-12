@@ -146,10 +146,12 @@ public class TableIndexWriter implements Runnable
 			e.printStackTrace();
 			return;
 		}
-
+		
+		boolean geoflag = true;
 		String geometryField = this.geoFiled;
 		if (geometryField == null || "".equalsIgnoreCase(geometryField))
 		{
+			geoflag = false;
 			if(dataBaseURL.contains("oracle"))
 			{
 				geometryField = "SHAPE";
@@ -213,12 +215,11 @@ public class TableIndexWriter implements Runnable
 			
 			// 查询获取表中所有列名
 			String sql1 = "SELECT * from " + table;
-			SQLResultSet rs1 = databaseHandle.exeSQLSelect(sql1);
+			SQLResultSet rs1 = databaseHandle.exeSQLSelect(sql1,1,1);
 			// 遍历拼接查询sql语句
 			String sql2 = "select ";
-			for (int i = 0; i < rs1.getRowNum(); i++)
+			for (String value:rs1.getRow(0).getAllColumnName())
 			{
-				String value = rs1.getRow(i).getValue("COLUMN_NAME").getString_value();
 				if (value.equalsIgnoreCase(geometryField))
 				{
 					if(dataBaseURL.contains("oracle"))
@@ -229,7 +230,7 @@ public class TableIndexWriter implements Runnable
 					{
 						value = "ST_AsText("+geometryField+") as GEOMETRY_IN";
 					}
-					
+					geoflag = true;
 				}
 				sql2 += value + ",";
 				// System.out.println("列名:" + value);
@@ -256,8 +257,11 @@ public class TableIndexWriter implements Runnable
 				// 创建文档对象
 				Document doc = new Document();
 				JsonObject feature = new JsonObject();
-				// 存入一组数据,键type,值为Feature
-				feature.addProperty("type", "Feature");
+				if(geoflag)
+				{
+					// 存入一组数据,键type,值为Feature
+					feature.addProperty("type", "Feature");
+				}
 				JsonObject proper = new JsonObject();
 
 				for (int i = 1; i <= size; i++)
@@ -371,7 +375,9 @@ public class TableIndexWriter implements Runnable
 						}
 					}
 				}
+				
 				feature.add("properties", proper);
+				
 				Field ALLCONTENT = null;
 				if(this.geoFiled == null || "".equalsIgnoreCase(this.geoFiled))
 				{
