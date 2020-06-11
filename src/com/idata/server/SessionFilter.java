@@ -46,7 +46,7 @@ public class SessionFilter implements Filter {
 	      String errors = "您还没有登录，或者session已过期。请先登陆!";
 	      request.setAttribute("Message", errors);
 	      //跳转至登录页面
-	      res.sendRedirect("/SHAMSTOKEN/login.html");
+	      res.sendRedirect("/ONEDATA/login.html");
 	      //request.getRequestDispatcher("/login.html").forward(request, response);
 	    } else {
 	    	// pass the request along the filter chain

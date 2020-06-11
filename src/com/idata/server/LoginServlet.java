@@ -43,7 +43,7 @@ public class LoginServlet extends HttpServlet {
         if(!validationCode.equalsIgnoreCase(validation_code)){
         	//System.out.println("验证码错误");
             //返回信息
-        	response.getWriter().write("<script> alert(\"验证码输入错误！\");parent.location.href='/SHAMSTOKEN/login.html';</script>");
+        	response.getWriter().write("<script> alert(\"验证码输入错误！\");parent.location.href='/ONEDATA/login.html';</script>");
         	return;
         }
         
@@ -57,12 +57,12 @@ public class LoginServlet extends HttpServlet {
         } else if (result.equals("hasUserNameButPasswordInCorrect")) {
             //System.out.println("用户名正确,密码不正确");
             //返回信息，提示错误
-            response.getWriter().write("<script> alert(\"用户名正确,密码不正确！\");parent.location.href='/SHAMSTOKEN/login.html';</script>");
+            response.getWriter().write("<script> alert(\"用户名正确,密码不正确！\");parent.location.href='/ONEDATA/login.html';</script>");
             return;
         } else if (result.equals("hasNoUserName")) {
            // System.out.println("没有此用户");
           //返回信息，提示错误
-           response.getWriter().write("<script> alert(\"没有此用户！\");parent.location.href='/SHAMSTOKEN/login.html';</script>");
+           response.getWriter().write("<script> alert(\"没有此用户！\");parent.location.href='/ONEDATA/login.html';</script>");
            return;
         }
         //

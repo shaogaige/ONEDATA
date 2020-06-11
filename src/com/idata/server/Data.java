@@ -67,6 +67,13 @@ public class Data extends HttpServlet {
 			jsondata = URLDecoder.decode(jsondata,"UTF-8");
 			param.setJsondata(jsondata);
 		}
+		//输出字段
+		String outfields = request.getParameter("outfields");
+		if(outfields != null) {
+			outfields = new String(outfields.getBytes("ISO8859-1"),"UTF-8");
+			outfields = URLDecoder.decode(outfields,"UTF-8");
+			param.setOutFields(outfields);
+		}
 		//字段名
 		String queryfields = request.getParameter("queryfields");
 		if(queryfields != null) {
@@ -74,12 +81,13 @@ public class Data extends HttpServlet {
 			queryfields = URLDecoder.decode(queryfields,"UTF-8");
 			param.setQueryfields(queryfields);
 		}
-		String outfields = request.getParameter("outfields");
-		if(outfields != null) {
-			outfields = new String(outfields.getBytes("ISO8859-1"),"UTF-8");
-			outfields = URLDecoder.decode(outfields,"UTF-8");
-			param.setOutFields(outfields);
-		}
+		//字段操作
+		String queryoperates = request.getParameter("queryoperates");
+		if(queryoperates != null) {
+			queryoperates = new String(queryoperates.getBytes("ISO8859-1"),"UTF-8");
+			queryoperates = URLDecoder.decode(queryoperates,"UTF-8");
+			param.setQueryoperates(queryoperates);
+		}		
 		//查询关键字
 		String keywords = request.getParameter("keywords");
 		if(keywords != null) {
@@ -87,6 +95,13 @@ public class Data extends HttpServlet {
 			keywords = URLDecoder.decode(keywords,"UTF-8");
 			param.setKeywords(keywords);
 		}
+		//多个操作之间的关系
+		String queryrelations = request.getParameter("queryrelations");
+		if(queryrelations != null) {
+			queryrelations = new String(queryrelations.getBytes("ISO8859-1"),"UTF-8");
+			queryrelations = URLDecoder.decode(queryrelations,"UTF-8");
+			param.setQueryrelations(queryrelations);
+		}		
 		//用户指定的查询范围
 		String bbox = request.getParameter("bbox");
 		if(bbox != null) {
@@ -104,6 +119,13 @@ public class Data extends HttpServlet {
 		//空间操作
 		String geoaction = request.getParameter("geoaction");
 		param.setGeoaction(geoaction);
+		//ID字段
+		String idfield = request.getParameter("idfield");
+		if(idfield != null) {
+			idfield = new String(idfield.getBytes("ISO8859-1"),"UTF-8");
+			idfield = URLDecoder.decode(idfield,"UTF-8");
+			param.setIdfield(idfield);
+		}		
 		//自定义SQL
 		String usersql = request.getParameter("usersql");
 		if(usersql != null) {
@@ -134,6 +156,13 @@ public class Data extends HttpServlet {
 		//访问权限
 		String token = request.getParameter("token");
 		param.setToken(token);
+		//时间标签
+		String time = request.getParameter("time");
+		if(time != null) {
+			time = new String(time.getBytes("ISO8859-1"),"UTF-8");
+			time = URLDecoder.decode(time,"UTF-8");
+			param.setTime(time);
+		}
 		
 		
 		DataControl dataControl = new DataControl(); 
