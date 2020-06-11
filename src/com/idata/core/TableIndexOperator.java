@@ -449,7 +449,7 @@ public class TableIndexOperator {
 				field = "ALL_JSON_DATA";
 			}
 			
-			String[] qfields = filter.getQueryfields().split(",");
+			String[] qfields = field.split(",");
 			String[] qopers = filter.getQueryoperates().split(",");
 			String[] keywords = filter.getKeywords().split(",");
 			String[] qrelas = filter.getQueryrelations().split(",");

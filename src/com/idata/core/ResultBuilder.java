@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.idata.tool.AESUtil;
 import com.ojdbc.sql.Value;
 import com.ojdbc.sql.core.ResultSetUtil;
 import com.ojdbc.sql.exception.DBCException;
@@ -188,6 +189,12 @@ public class ResultBuilder extends ResultSetUtil{
 			sb.append("}");
 		}
 		return sb.toString();
+	}
+	
+	public static String object2ciphertext(List<SuperObject> os,String outFormat,String encryptKey)
+	{
+		String plaintext = object2string(os,outFormat);
+		return AESUtil.aesEncrypt(plaintext, encryptKey);
 	}
 
 }

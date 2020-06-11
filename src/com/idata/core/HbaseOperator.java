@@ -19,9 +19,10 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.filter.BinaryComparator;
+//import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FilterList;
+//import org.apache.hadoop.hbase.filter.BigDecimalComparator;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.filter.SubstringComparator;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -223,7 +224,7 @@ public class HbaseOperator {
 				else if(">".equalsIgnoreCase(qopers[i]))
 				{
 					f = new SingleColumnValueFilter(Bytes.toBytes("data"),Bytes.toBytes(qfields[i]),
-							CompareOp.GREATER,new BinaryComparator(Bytes.toBytes(keywords[i])));
+							CompareOp.GREATER,Bytes.toBytes(keywords[i]));
 					f.setFilterIfMissing(true);
 				}
 				else if("<".equalsIgnoreCase(qopers[i]))
