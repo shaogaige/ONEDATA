@@ -51,7 +51,7 @@ public class VisitControl {
 		
 		private String req_ip;
 		
-		private String req_server = "SHAMS";
+		private String req_server = "ONEDATA";
 		
 		private String req_interface;
 		
