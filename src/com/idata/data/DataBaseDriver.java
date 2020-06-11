@@ -473,7 +473,40 @@ public class DataBaseDriver implements IDataDriver {
 					sql += " where 1=1";
 				}
 				//空间数据查询
-				sql += " and "+param.getGeoaction()+"('"+param.getBbox()+"'::geometry,"+param.getGeofield()+")";
+				if(DBHandle.getConnectionString().contains("oracle"))
+				{
+					String geoAction = param.getGeoaction();
+					if("Intersects".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "SDE.ST_INTERSECTS";
+					}
+					else if("Contains".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "SDE.ST_CONTAINS";
+					}
+					else if("Within".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "SDE.ST_WITHIN";
+					}
+					sql += " and "+geoAction+"(SDE.ST_GEOMETRY('"+param.getBbox()+"',4326),"+param.getGeofield()+")";
+				}
+				else if(DBHandle.getConnectionString().contains("postgresql"))
+				{
+					String geoAction = param.getGeoaction();
+					if("Intersects".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "ST_Intersects";
+					}
+					else if("Contains".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "ST_Contains";
+					}
+					else if("Within".equalsIgnoreCase(geoAction))
+					{
+						geoAction = "ST_Within";
+					}
+					sql += " and "+geoAction+"('"+param.getBbox()+"'::geometry,"+param.getGeofield()+")";
+				}
 			}
 			
 			if(param.getUsersql()!= null && !"".equalsIgnoreCase(param.getUsersql()))
