@@ -9,7 +9,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 
 /**  
- * Creater:YANG Fan
+ * Creater:ShaoGaige
  * Description: Geometry转化工具类
  * Log:
  */

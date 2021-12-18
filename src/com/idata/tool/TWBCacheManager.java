@@ -18,32 +18,59 @@ import java.util.concurrent.PriorityBlockingQueue;
  * Creater:SHAO Gaige
  * Description:三路均衡缓存管理器
  * Log:三路均衡缓存淘汰算法已申请专利
+ * 
  */
-public class TWBCacheManager {
+public class TWBCacheManager<T> {
 	
 	//最近问列表长度
-	public static int RecentAccessList_size = 100;
+	private int RecentAccessList_size = 100;
 	//当前热点集合长度
-	public static int CurrentHotSet_size = 2;
+	private int CurrentHotSet_size = 20;
 	//历史热点队列长度
-	public static int PastHotQueue_size = 50;
+	private int PastHotQueue_size = 50;
 	//最近问列表
-	private static Deque<String> recent = new LinkedBlockingDeque<String>();
+	private Deque<String> recent = new LinkedBlockingDeque<String>();
 	//当前热点集合
-	private static Vector<String> current = new Vector<String>();
+	private Vector<String> current = new Vector<String>();
 	//历史热点优先级队列
-	private static Queue<Value> past = new PriorityBlockingQueue<Value>();
+	private Queue<Value> past = new PriorityBlockingQueue<Value>();
 	
 	//缓存存储
-	private static Map<String,Value> cache = new ConcurrentHashMap<String,Value>();
+	private Map<String,Value> cache = new ConcurrentHashMap<String,Value>();
 	
-	public static Value get(String key)
+	public TWBCacheManager()
 	{
-		if(cache.containsKey(key))
+		
+	}
+	
+	public TWBCacheManager(int recent,int current,int past)
+	{
+		this.RecentAccessList_size = recent;
+		this.CurrentHotSet_size = current;
+		this.PastHotQueue_size = past;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public T getObject(String key)
+	{
+		Value v = this.get(key);
+		if(v != null)
 		{
-			Value v = cache.get(key);
+			return (T)v.getValue_o();
+		}
+		else
+		{
+			return null;
+		}
+	}
+	
+	public Value get(String key)
+	{
+		if(this.cache.containsKey(key))
+		{
+			Value v = this.cache.get(key);
 			v.setCounts(v.getCounts()+1);
-			cache.put(key, v);
+			this.cache.put(key, v);
 			if(recent.contains(key))
 			{
 				//最近访问列表
@@ -158,8 +185,9 @@ public class TWBCacheManager {
 		}
 	}
 	
-	public static boolean add(String key,Value v)
+	public boolean add(String key,T t)
 	{
+		Value v = new Value();
 		if(cache.containsKey(key))
 		{
 			//exists
@@ -167,6 +195,7 @@ public class TWBCacheManager {
 			v.setTime(old.getTime());
 			v.setCounts(old.getCounts());
 			v.setKey(key);
+			v.setValue_o(t);
 			cache.put(key, v);
 		}
 		else
@@ -174,6 +203,7 @@ public class TWBCacheManager {
 			//new object
 			v.setTime(getTime());
 			v.setKey(key);
+			v.setValue_o(t);
 			recent.addFirst(key);
 			cache.put(key, v);
 			int rsize = recent.size();
@@ -182,14 +212,21 @@ public class TWBCacheManager {
 				String k = recent.removeLast();
 				cache.remove(k);
 			}
-			
-			
 		}
 		return true;
 		
 	}
 	
-	public static boolean remove(String key)
+	public boolean removeall()
+	{
+		this.cache.clear();
+		this.recent.clear();
+		this.current.clear();
+		this.past.clear();
+		return true;
+	}
+	
+	public boolean remove(String key)
 	{
 		if(cache.containsKey(key))
 		{
@@ -210,17 +247,34 @@ public class TWBCacheManager {
 			return true;
 		}
 		return false;
-		
 	}
 	
-	public static void print()
+	public void removeContainKey(String key)
+	{
+		for(String _key:this.cache.keySet()) 
+		{
+			if(_key.equalsIgnoreCase(key) || _key.contains(key) || key.contains(_key)) 
+			{
+				//System.out.println("remove:"+_key);
+				this.remove(_key);
+			}
+		}
+	}
+	
+	public boolean containsKey(String key)
+	{
+		return this.cache.containsKey(key);
+	}
+	
+	public void print()
 	{
 		System.out.println("size:"+cache.size()+";rsize:"+recent.size()+";csize:"+current.size()+";psize:"+past.size());
-		System.out.println(current.get(0)+current.get(1));
-		System.out.println(past.peek().getKey());
+		//System.out.println(current.get(0)+current.get(1));
+		//System.out.println(past.peek().getKey());
+		System.out.println("key:"+this.cache.keySet().toString());
 	}
 	
-	private static long getTime()
+	private long getTime()
 	{
 		Date now = new Date();
 		return now.getTime();
@@ -243,6 +297,8 @@ public class TWBCacheManager {
 		private String value_s;
 		//2-字节数组
 		private byte[] value_bs;
+		//3-对象
+		private Object value_o;
 		//时间
 		private long time;
 		//次数
@@ -289,6 +345,12 @@ public class TWBCacheManager {
 		public void setValue_bs(byte[] value_bs) {
 			this.value_bs = value_bs;
 			this.type = 2;
+		}
+		public Object getValue_o() {
+			return value_o;
+		}
+		public void setValue_o(Object value_o) {
+			this.value_o = value_o;
 		}
 		@Override
 		public int compareTo(Value o) {

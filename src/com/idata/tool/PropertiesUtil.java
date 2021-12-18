@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Properties;
 
+import org.gdal.gdal.gdal;
 import org.wltea.analyzer.core.IKSegmenter;
 
 import com.idata.core.TableIndexWriter;
@@ -17,8 +18,8 @@ public class PropertiesUtil {
 	/**
 	 * 初始化配置文件
 	 */
-	public static void init() 
-{
+	public static void init()
+	{
 	    try 
 		{
 	    	//读取系统配置文件
@@ -30,6 +31,7 @@ public class PropertiesUtil {
 	    	String path = PropertiesUtil.class.getClassLoader().getResource("config/config.properties").getPath();
 	    	File f = new File(path);
 	    	String indexPath = f.getParent();
+	    	systemProperties.put("_systempath_", indexPath);
 	    	//检测分词词典
 			if(existFile(indexPath,".dic"))
 			{
@@ -39,14 +41,51 @@ public class PropertiesUtil {
 				epath = epath.replaceAll("\\\\", "/");
 				
 				//加载分词词典
-				TableIndexWriter.ikSeg = new IKSegmenter(new StringReader("河南数慧信息技术有限公司"),true,epath);
+				TableIndexWriter.ikSeg = new IKSegmenter(new StringReader("onedata"),true,epath);
 				//System.out.println(epath);
 			}
+			if(existFile(indexPath,".lic"))
+			{
+				System.out.println("授权文件检测正常...");
+				InputStream is = PropertiesUtil.class.getClassLoader().getResourceAsStream("config/auth.lic");
+				Properties lic = new Properties();
+		    	lic.load(is);
+		    	systemProperties.put("lic", lic.getProperty("lic"));
+			}
+			//GDAL加载
+			String gdal_load = systemProperties.getProperty("GDAL_LOAD");
+			if("true".equalsIgnoreCase(gdal_load))
+			{
+				File f2 = new File(indexPath);
+				String mainpath = f2.getParent().replaceAll("//", "/").replaceAll("\\\\", "/");
+				String resource = mainpath + "/resource";
+				if(existFile(resource,"gdal"))
+				{
+					System.out.println("检测到GDAL目录并允许加载...");
+					try 
+					{
+						System.setProperty("GDAL_HOME", mainpath+"/resource/gdal/win64/bin");
+						System.setProperty("GDAL_HOME_JAVA", mainpath+"/resource/gdal/win64/bin/gdal/java");
+						//System.out.println( System.getProperty("java.library.path"));
+						System.setProperty("java.library.path", System.getProperty("java.library.path")+";"+mainpath+"/resource/gdal/win64/bin/");
+						System.setProperty("java.library.path", System.getProperty("java.library.path")+";"+mainpath+"/resource/gdal/win64/bin/gdal/java/");
+						//System.out.println( System.getProperty("java.library.path"));
+						LibraryUtil.loadFromResource(systemProperties.getProperty("GDAL_PATH"));
+						gdal.AllRegister();
+					} 
+					catch (IOException e) 
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			systemProperties = null;
-			System.out.println("读取配置文件信息失败！！！");
+			LogUtil.info("读取配置文件信息失败！！！");
 		}
 	}
 	
