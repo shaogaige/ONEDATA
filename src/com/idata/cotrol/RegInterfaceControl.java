@@ -12,10 +12,10 @@ import com.idata.core.HbaseManager;
 import com.idata.core.OneDataServer;
 import com.idata.core.ResultBuilder;
 import com.idata.core.SuperObject;
+import com.idata.core.SystemManager;
 import com.idata.core.TableIndexManager;
 import com.idata.data.DataBaseDriver;
 import com.idata.data.IDataDriver;
-import com.idata.tool.RandomIDUtil;
 import com.ojdbc.sql.Value;
 
 /**
@@ -34,21 +34,14 @@ public class RegInterfaceControl {
 		param.setOperation(operation);
 		param.setJsondata(data);
 		param.setQueryfields(field);
-		param.setKeywords(value);
+		param.setQueryvalues(value);
 		param.setStart(start);
 		param.setCount(count);
+		param.setLayer(OneDataServer.TablePrefix+"tableinfo");
 		
 		DataControl dataCon = new DataControl();
 		
 		String result = "";
-		if("shareinfo".equalsIgnoreCase(type))
-		{
-			param.setLayer(OneDataServer.TablePrefix+"shareinfo");
-		}
-		else 
-		{
-			param.setLayer(OneDataServer.TablePrefix+"datainfo");
-		}
 		
 		if("query".equalsIgnoreCase(param.getOperation()))
 		{
@@ -56,7 +49,7 @@ public class RegInterfaceControl {
 			if(os != null)
 			{
 				String r = ResultBuilder.object2string(os,param.getOut());
-				Long size = IDataDriver.resultSize.get(param.toString());
+				Long size = IDataDriver.resultSize.getObject(param.toString());
 				result = "{\"state\":true,\"message\":\"数据查询成功\",\"size\":"+size+",\"data\":"+r+"}";
 			}
 			else
@@ -83,37 +76,25 @@ public class RegInterfaceControl {
 			//内部处理
 			SuperObject temp = new SuperObject();
 			temp.setJSONString(param.getJsondata(), param.getIdfield(), param.getGeofield(),true);
-			if(temp.getProperty("uid") == null || "".equalsIgnoreCase(temp.getProperty("uid").getString_value()))
-			{
-				temp.addProperty("id", new Value().setString_value(RandomIDUtil.getUUID("")));
-			}
 			
-			if("shareinfo".equalsIgnoreCase(type))
+			//系统自动生成
+			temp.addProperty("indexserver", new Value().setString_value(OneDataServer.CurrentServerNode));
+			temp.addProperty("register_time", new Value().setString_value(OneDataServer.getCurrentTime()));
+			temp.addProperty("indexpath", new Value().setString_value(SystemManager.getTableIndexPath(param.getLayer())));
+			if(temp.getProperty("con").getString_value().contains(","))
 			{
-				temp.addProperty("sharedate", new Value().setString_value(OneDataServer.getCurrentTime()));
+				ConnectionControl con = new ConnectionControl();
+				String con_s = con.getEncodeConStr(temp.getProperty("con").getString_value());
+				temp.addProperty("con", new Value().setString_value(con_s));
+			}
+			DataBaseHandle dbh = dbDriver.getDBHandle(param);
+			if(dbh == null)
+			{
+				return "{\"state\":false,\"message\":\"数据新增失败,数据库连接字符串不可用\",\"size\":0,\"data\":[]}";
 			}
 			else
 			{
-				//系统自动生成
-				temp.addProperty("indexserver", new Value().setString_value(OneDataServer.CurrentServerNode));
-				temp.addProperty("regtime", new Value().setString_value(OneDataServer.getCurrentTime()));
-				temp.addProperty("indexpath", new Value().setString_value(OneDataServer.getTableIndexPath(param.getLayer())));
-				if(temp.getProperty("con").getString_value().contains(","))
-				{
-					ConnectionControl con = new ConnectionControl();
-					String con_s = con.getEncodeConStr(temp.getProperty("con").getString_value());
-					temp.addProperty("con", new Value().setString_value(con_s));
-				}
-				DataBaseHandle dbh = dbDriver.getDBHandle(param);
-				if(dbh == null)
-				{
-					return "{\"state\":false,\"message\":\"数据新增失败,数据库连接字符串不可用\",\"size\":0,\"data\":[]}";
-				}
-				else
-				{
-					temp.addProperty("enable", new Value().setString_value("true"));
-					temp.addProperty("counts", new Value().setInt_value(0));
-				}
+				temp.addProperty("status", new Value().setString_value("true"));
 			}
 			
 			param.setJsondata(temp.getJSONString("json", param.getGeofield()));
