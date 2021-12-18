@@ -77,4 +77,39 @@ public class IndexDriver implements IDataDriver {
 		return Boolean.getBoolean(PropertiesUtil.getValue("INDEXSUPPORT"));
 	}
 
+	@Override
+	public int getClassOrder() {
+		// TODO Auto-generated method stub
+		return 3;
+	}
+
+	@Override
+	public boolean isSupport(String fun) {
+		// TODO Auto-generated method stub
+		switch(fun){
+		  case "add" :
+			  return true;
+		  case "adds" :
+			  return false;
+	      case "edit" :
+	    	  return true; 
+	      case "delete" :
+	    	  return true; 
+	      case "query" :
+	    	  return true; 
+	      case "group" :
+	    	  return true; 
+	      case "getmeta" :
+	    	  return false; 
+	      default : 
+	          return false;
+	    }
+	}
+
+	@Override
+	public boolean adds(DataParam param) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }
