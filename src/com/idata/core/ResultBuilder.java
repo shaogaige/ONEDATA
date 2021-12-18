@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.idata.tool.AESUtil;
+import com.idata.tool.LogUtil;
 import com.ojdbc.sql.Value;
 import com.ojdbc.sql.core.ResultSetUtil;
 import com.ojdbc.sql.exception.DBCException;
@@ -73,7 +74,7 @@ public class ResultBuilder extends ResultSetUtil{
 			return resultSet;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_ResultSet, e);
 			return null;
 		}
@@ -149,7 +150,7 @@ public class ResultBuilder extends ResultSetUtil{
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_ResultSet, e);
 			return null;
 		}

@@ -15,6 +15,7 @@ import org.geotools.geojson.GeoJSON;
 import org.geotools.geojson.geom.GeometryJSON;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.idata.tool.RandomIDUtil;
@@ -86,7 +87,7 @@ public class SuperObject {
 			return null;
 		}
 	}
-	public void setGeo(Geometry geo) {
+	public void setGeo(Geometry geo,boolean objectize) {
 		this.geo = geo;
 		this.type = "spatial";
 	}
@@ -112,6 +113,8 @@ public class SuperObject {
 	public void addProperty(String key,Value v)
 	{
 		this.properties.put(key, v);
+		//刷新字符串格式
+		this.properties_s = "";
 	}
 	
 	public Set<String>  getKeys()
@@ -134,7 +137,7 @@ public class SuperObject {
 			{
 				feature.addProperty(key, v.getString_value());
 			}
-			else if(v.isDoubleValue())
+			else if(v.isDoubleValue() || v.isFloatValue())
 			{
 				feature.addProperty(key, v.getDouble_value());
 			}
@@ -172,9 +175,15 @@ public class SuperObject {
 				JsonObject proper = getJson();
 				feature.addProperty("type", "Feature");
 				StringWriter output = new StringWriter();
-				try {
+				try 
+				{
+					if(geo == null)
+					{
+						WKTReader OGCWKTReader = new WKTReader();
+						this.geo = OGCWKTReader.read(geo_wkt);
+					}
 					GeoJSON.write(geo, output);
-				} catch (IOException e) {
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -284,7 +293,10 @@ public class SuperObject {
 						this.oid = String.valueOf(entry.getValue().getAsNumber());
 					}
 				}
-				
+				if(JsonNull.INSTANCE.equals(entry.getValue()))
+				{
+					continue;
+				}
 				if(entry.getValue().getAsJsonPrimitive().isString())
 				{
 					this.properties.put(key, new Value().setString_value(entry.getValue().getAsString()));
@@ -326,6 +338,10 @@ public class SuperObject {
 					this.geo_wkt = entry.getValue().getAsString();
 				}
 				//System.out.println(key);
+				if(JsonNull.INSTANCE.equals(entry.getValue()))
+				{
+					continue;
+				}
 				if(entry.getValue().getAsJsonPrimitive().isString())
 				{
 					this.properties.put(key, new Value().setString_value(entry.getValue().getAsString()));

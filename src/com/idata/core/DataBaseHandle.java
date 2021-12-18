@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.idata.tool.AESUtil;
+import com.idata.tool.LogUtil;
 import com.ojdbc.sql.ConnectionManager;
 import com.ojdbc.sql.ConnectionManager.ConnectionInfo;
 import com.ojdbc.sql.core.SQLPreparedParamUtil;
@@ -140,6 +141,18 @@ public class DataBaseHandle extends DataBase {
 		return available;
 	}
 	
+	public String getConStr()
+	{
+		String constr = dataBaseurl+","+userName+","+passWord;
+		return constr;
+	}
+	
+	public String getEncodeConStr()
+	{
+		String constr = dataBaseurl+","+userName+","+passWord;
+		return AESUtil.aesEncrypt(constr, OneDataServer.AESKEY);
+	}
+	
 	public List<SuperObject> exeSQLSelect2(String sql, int start, int count,String idfield,String geofield) {
 		// TODO Auto-generated method stub
 		ConnectionObject conn = null;
@@ -154,7 +167,7 @@ public class DataBaseHandle extends DataBase {
 			return r;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_SQL, e);
 			return null;
 		}
@@ -196,7 +209,7 @@ public class DataBaseHandle extends DataBase {
 			return r;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_SQL, e);
 			return null;
 		}
@@ -263,15 +276,15 @@ public class DataBaseHandle extends DataBase {
 			
 			if(data.getProperty(idField).isStringValue())
 			{
-				sql += "where id='"+data.getProperty(idField).getString_value()+"'";
+				sql += "where "+idField+"='"+data.getProperty(idField).getString_value()+"'";
 			}
 			else if(data.getProperty(idField).isLongValue())
 			{
-				sql += "where id="+data.getProperty(idField).getLong_value();
+				sql += "where "+idField+"='"+data.getProperty(idField).getLong_value();
 			}
 			else
 			{
-				sql += "where id="+data.getProperty(idField).getInt_value();
+				sql += "where "+idField+"='"+data.getProperty(idField).getInt_value();
 			}
 			conn = ConnectionManager.borrowConnectionObject(connInfo);
 			preStmt = conn.getConnection().prepareStatement(sql);
@@ -280,7 +293,7 @@ public class DataBaseHandle extends DataBase {
 			return true;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_SQL, e);
 			return false;
 		}
@@ -349,7 +362,7 @@ public class DataBaseHandle extends DataBase {
 			return f;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_SQL, e);
 			return 0;
 		}
@@ -406,7 +419,7 @@ public class DataBaseHandle extends DataBase {
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtil.error(e);
 			DBCException.logException(DBCException.E_SQL, e);
 			return null;
 		}
@@ -441,6 +454,10 @@ public class DataBaseHandle extends DataBase {
 		return ConnectionManager.getConnectionInfo(d_enum, dataBaseurl, userName, passWord);
 	}
 	
+	public DataBaseEnum getDataBaseType()
+	{
+		return this.d_enum;
+	}
 	/**
 	 * 判断表是否存在
 	 * @param tableName
@@ -469,7 +486,7 @@ public class DataBaseHandle extends DataBase {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			//e.printStackTrace();
+			//LogUtil.error(e);
 			return false;
 		}finally{
 			if(conn != null)

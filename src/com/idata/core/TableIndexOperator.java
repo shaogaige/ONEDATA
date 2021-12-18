@@ -83,7 +83,7 @@ public class TableIndexOperator {
 			if(doc != null) 
 			{
 				// 定义索引输出目录
-				Directory dir = FSDirectory.open(Paths.get(filter.getPath()));
+				Directory dir = FSDirectory.open(Paths.get(filter.getIndexPath()));
 				IndexWriterConfig iwc = new IndexWriterConfig(TableIndexWriter.analyzer);
 				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
 				// 创建write对象
@@ -127,7 +127,7 @@ public class TableIndexOperator {
 			if(doc != null) 
 			{
 				// 定义索引输出目录
-				Directory dir = FSDirectory.open(Paths.get(filter.getPath()));
+				Directory dir = FSDirectory.open(Paths.get(filter.getIndexPath()));
 				IndexWriterConfig iwc = new IndexWriterConfig(TableIndexWriter.analyzer);
 				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
 				// 创建write对象
@@ -182,7 +182,7 @@ public class TableIndexOperator {
 			if(doc != null) 
 			{
 				// 定义索引输出目录
-				Directory dir = FSDirectory.open(Paths.get(filter.getPath()));
+				Directory dir = FSDirectory.open(Paths.get(filter.getIndexPath()));
 				IndexWriterConfig iwc = new IndexWriterConfig(TableIndexWriter.analyzer);
 				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
 				// 创建write对象
@@ -232,7 +232,7 @@ public class TableIndexOperator {
 		{
 			BooleanQuery query_all = buildQuery(filter);
 	        System.out.println("Query:"+query_all.toString());
-	        IndexSearcher searcher = OneDataServer.getTableSeracher(filter.getLayer());
+	        IndexSearcher searcher = SystemManager.getTableSeracher(filter.getLayer());
 			if(searcher != null)
 			{
 				TopDocs results = searcher.search(query_all, searcher.getIndexReader().maxDoc());
@@ -267,7 +267,7 @@ public class TableIndexOperator {
 	{
 		BooleanQuery query_all = buildQuery(filter);
         System.out.println("Query:"+query_all.toString());
-        IndexSearcher searcher = OneDataServer.getTableSeracher(filter.getLayer());
+        IndexSearcher searcher = SystemManager.getTableSeracher(filter.getLayer());
 		if(searcher != null)
 		{
 			TopDocs results = searcher.search(query_all, searcher.getIndexReader().maxDoc());
@@ -293,7 +293,7 @@ public class TableIndexOperator {
 	{
 		BooleanQuery query_all = buildQuery(filter);
 		
-		IndexSearcher searcher = OneDataServer.getTableSeracher(filter.getLayer());
+		IndexSearcher searcher = SystemManager.getTableSeracher(filter.getLayer());
 		
 		GroupQuery groupQuery = new GroupQuery(query_all,filter,searcher);
 		
@@ -309,7 +309,7 @@ public class TableIndexOperator {
 	{
 		BooleanQuery query_all = buildQuery(filter);
 		
-		IndexSearcher searcher = OneDataServer.getTableSeracher(filter.getLayer());
+		IndexSearcher searcher = SystemManager.getTableSeracher(filter.getLayer());
 		
 		GroupQuery groupQuery = new GroupQuery(query_all,filter,searcher);
 		
@@ -408,7 +408,7 @@ public class TableIndexOperator {
 			
 			if(param.getQueryfields() != null && !"".equalsIgnoreCase(param.getQueryfields()))
 			{
-				Field filed = new TextField(param.getQueryfields(), param.getKeywords(), Field.Store.YES);
+				Field filed = new TextField(param.getQueryfields(), param.getQueryvalues(), Field.Store.YES);
 				doc.add(filed);
 			}
 			return doc;
@@ -439,7 +439,7 @@ public class TableIndexOperator {
 	
 	private void buildFilter(DataParam filter,BooleanQuery.Builder builder_all)
 	{
-		String keyWord = filter.getKeywords();
+		String keyWord = filter.getQueryvalues();
 		if(keyWord != null && !"".equalsIgnoreCase(keyWord))
 		{
 			
@@ -451,7 +451,7 @@ public class TableIndexOperator {
 			
 			String[] qfields = field.split(",");
 			String[] qopers = filter.getQueryoperates().split(",");
-			String[] keywords = filter.getKeywords().split(",");
+			String[] keywords = filter.getQueryvalues().split(",");
 			String[] qrelas = filter.getQueryrelations().split(",");
 			int length = qfields.length;
 			
@@ -530,7 +530,7 @@ public class TableIndexOperator {
 	private BooleanQuery buildWildFilter(DataParam filter)
 	{
 		BooleanQuery.Builder builder_all = new BooleanQuery.Builder();
-		String keyWord = filter.getKeywords();
+		String keyWord = filter.getQueryvalues();
 		if(keyWord != null && !"".equalsIgnoreCase(keyWord))
 		{
 			BooleanQuery.Builder builder_keyword = new BooleanQuery.Builder();
@@ -809,9 +809,9 @@ public class TableIndexOperator {
 				{
 					SuperObject o = new SuperObject();
 					//定义输出字段
-					if(filter.getOutFields() != null && !"".equalsIgnoreCase(filter.getOutFields()))
+					if(filter.getOutfields() != null && !"".equalsIgnoreCase(filter.getOutfields()))
 					{
-						String[] ofields = filter.getOutFields().split(",");
+						String[] ofields = filter.getOutfields().split(",");
 						for(int j=0;j<ofields.length;j++)
 						{
 							if(ofields[j].equalsIgnoreCase(filter.getGeofield()))
@@ -837,7 +837,7 @@ public class TableIndexOperator {
 				}
 			}
 		}
-		IDataDriver.resultSize.put(filter.toString(), (long) resultsize);
+		IDataDriver.resultSize.add(filter.toString(), (long) resultsize);
 		return rs;
 	}
 	

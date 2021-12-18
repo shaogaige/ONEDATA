@@ -5,8 +5,6 @@
 package com.idata.core;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -16,19 +14,18 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 
-import com.idata.cotrol.VisitControl.VisitLogModel;
+import com.idata.tool.ActiveMQUtil;
+import com.idata.tool.ClassUtil;
 import com.idata.tool.IPAddressUtil;
 import com.idata.tool.LogUtil;
 import com.idata.tool.PropertiesUtil;
-import com.idata.tool.RandomIDUtil;
+import com.idata.tool.RedisUtil;
+import com.idata.tool.TWBCacheManager;
+import com.idata.core.DataBaseHandle;
+import com.idata.data.IDataDriver;
+import com.idata.tool.RabbitMQUtil;
 /**
  * Creater:SHAO Gaige
  * Description:服务初始化类
@@ -38,16 +35,18 @@ public class OneDataServer {
 	
 	//数据库工具data&share
     public static DataBaseHandle SystemDBHandle = null;
-    //token&visit
+    //内置访问记录SQLite数据库
     public static DataBaseHandle SQLITEDBHandle = null;
     //Hbase数据库
     public static HbaseHandle hbaseHandle = null;
+    //Redis数据库(多数用于缓存)
+    public static RedisUtil  redisUtil = null;
 	//数据库表前缀
 	public static String TablePrefix = "";
 	//序列前缀
 	public static String SEQPrefix = "";
 	//服务节点
-	public static String CurrentServerNode = "localhost:8090/ONEDATA";
+	public static String CurrentServerNode = "localhost:8090/onedata";
 	//索引读写
 	public static Map<String,IndexReader> tableReader = new ConcurrentHashMap<String,IndexReader>();
 	public static Queue<String> tableOrder = new ConcurrentLinkedQueue<String>();
@@ -56,130 +55,162 @@ public class OneDataServer {
 	public static String ServerBackUp;
 	public static String FilePathBackUp;
 	//访问日志
-	public static boolean visitlog = true;
+	public static boolean visitlog = false;
+	//消息队列
+	public static boolean isActiveMQ = false;
+	public static boolean isRabbitMQ = false;
+	//token
+	public static boolean checkToken = false;
+	public static boolean doFilter = false;
 	//异常日志路径
 	public static String logPath;
 	//日期格式化
 	public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	//访问次数缓存
-	public static Map<String,Long> visitCache = new ConcurrentHashMap<String,Long>();
-	public static ConcurrentLinkedQueue<VisitLogModel> visitorqueue = new ConcurrentLinkedQueue<VisitLogModel>();
 	//内部字符串AES加密秘钥
 	public final static String AESKEY = "ONEDATASTRENCKEY";
+	//文件传输状态
+	public static TWBCacheManager<String> filestate = new TWBCacheManager<String>();
+	//缓存接口
+	public static TWBCacheManager<String> cache = new TWBCacheManager<String>(200,50,100);
+	//查询结果缓存
+	public static TWBCacheManager<String> resultcache = new TWBCacheManager<String>(100,20,10);
+	//数据库信息缓存
+	public static TWBCacheManager<SuperObject> databaseinfo = new TWBCacheManager<SuperObject>();
+	//token缓存
+	public static TWBCacheManager<Boolean> tokencache = new TWBCacheManager<Boolean>();
+	//线程组
+	public static TWBCacheManager<Thread> threads = new TWBCacheManager<Thread>();
 	
 	//系统初始化
 	public static void init()
 	{
 		System.out.println("ONEDATA平台正在启动中...");
-		//连接数据库
+		//读取配置文件
 		PropertiesUtil.init();
+		//异常日志
+		logPath = PropertiesUtil.getValue("LOGFILE_PATH");
+		System.out.println("异常日志文件路径:"+logPath+"/log.txt");
+		File logfile = new File(logPath + "/log.txt");
+		LogUtil.setLogFile(logfile);
+				
 		TablePrefix = PropertiesUtil.getValue("TABLE_PREFIX");
 		SEQPrefix = PropertiesUtil.getValue("SEQ_PREFIX");
 		String url = PropertiesUtil.getValue("DataBaseURL");
 		String name = PropertiesUtil.getValue("UserName");
 		String password = PropertiesUtil.getValue("Password");
-		String sqlitepath = PropertiesUtil.getValue("SQLITEPATH");
 		try 
 		{
+			//连接数据库
 			SystemDBHandle = new DataBaseHandle(url,name,password);
-			String sqliteurl = "jdbc:sqlite://"+sqlitepath;
-			SQLITEDBHandle = new DataBaseHandle(sqliteurl,null,null);
+			//内置SQlite数据库
+			SQLITEDBHandle = new DataBaseHandle("jdbc:sqlite://"+logPath+"/visitdata.db",null,null);
+			System.out.println("访问记录路径:"+logPath+"/visitdata.db");
 			//初始化表
-			initTbales();
+			SystemManager.initTables();
+			//支持类型
+			List<Class<?>> subClass = ClassUtil.getClasses("com.idata.data", IDataDriver.class);
+			System.out.println("支持类型："+subClass.size());
+			for(int i=0;i<subClass.size();i++)
+			{
+				Class<?> d = subClass.get(i);
+				//反射调用方法
+				IDataDriver driver = GodTool.newInstanceDataDriver(d);
+				driver.isSupport();
+			}
 			
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			System.out.println("配置的数据库连接不可用");
+			LogUtil.info("配置的数据库连接不可用！");
+			LogUtil.error(e1);
 		}
-		//初始化服务节点
-		initServerNode();
-		//初始化索引路径
-		String indexPath = PropertiesUtil.getValue("SERVER_INDEXPATH");
-		System.out.println("INDEX Path: "+indexPath);
-		//异常日志
-		logPath = PropertiesUtil.getValue("LOGFILE_PATH");
-		System.out.println("异常日志文件路径:"+logPath);
-		File logfile = new File(logPath + "/log.txt");
-		LogUtil.setLogFile(logfile);
 		//访问日志
 		String vlog = PropertiesUtil.getValue("VISIT_LOG");
+		String rm = PropertiesUtil.getValue("RMQSUPPORT");
+		String am = PropertiesUtil.getValue("ACTIVEMQ");
 		if("true".equalsIgnoreCase(vlog))
 		{
 			visitlog = true;
 			System.out.println("访问日志开启...");
+			if("true".equalsIgnoreCase(am))
+			{
+				try
+				{
+					isActiveMQ = true;
+					ActiveMQUtil.initConsumer();
+					ActiveMQUtil.initProducer();
+					System.out.println("内置ActiveMQ开启...");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					LogUtil.info("内置ActiveMQ初始化失败！");
+					e.printStackTrace();
+					LogUtil.error(e);
+				}
+			}
+			else if("true".equalsIgnoreCase(rm))
+			{
+				try 
+				{
+					isRabbitMQ = true;
+					RabbitMQUtil.initConsumer();
+					RabbitMQUtil.initProducer();
+					System.out.println("RabbitMQ开启...");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					LogUtil.info("RabbitMQ连接失败！");
+					LogUtil.error(e);
+				}
+				
+			}
+			else
+			{
+				System.out.println("MQ消息队列中间件未开启！");
+			}
 		}
 		else
 		{
 			System.out.println("访问日志未开启!");
 		}
-		
+		//token授权
+		String token = PropertiesUtil.getValue("CheckToken");
+		if("true".equalsIgnoreCase(token))
+		{
+			System.out.println("token权限验证开启!");
+			checkToken = true;
+		}
+		//filter检查
+		String filter = PropertiesUtil.getValue("DOFILTER");
+		if("true".equalsIgnoreCase(filter))
+		{
+			System.out.println("Filter验证开启!");
+			doFilter = true;
+		}
+		//初始化服务节点
+		initServerNode();
+		//初始化索引路径
+		String indexPath = PropertiesUtil.getValue("TABLES_INDEX_PATH");
+		System.out.println("Index Path: "+indexPath);
+		//初始化Hbase
 		String hbasesupport = PropertiesUtil.getValue("HBASESUPPORT");
 		if("true".equalsIgnoreCase(hbasesupport))
 		{
-			//初始化HBase
-			Configuration configuration = null;
-			configuration = HBaseConfiguration.create();
-	        //必须配置1
-	        configuration.set("hbase.zookeeper.quorum", 
-	        		PropertiesUtil.getValue("hbase.zookeeper.quorum"));
-	        //必须配置2
-	        configuration.set("hbase.rootdir", "/");
-	        configuration.set("hbase.cluster.distributed", "true");
-	        configuration.set("zookeeper.session.timeout", 
-	        		PropertiesUtil.getValue("zookeeper.session.timeout"));
-	        configuration.set("hbase.hregion.majorcompaction", "0");
-	        configuration.set("hbase.regionserver.regionSplitLimit", "1");
-	        configuration.set("dfs.client.socket-timeout", 
-	        		PropertiesUtil.getValue("dfs.client.socket-timeout"));
-	        configuration.set("hbase.regionserver.handler.count", 
-	        		PropertiesUtil.getValue("hbase.regionserver.handler.count"));
-			configuration.set("hbase.zookeeper.property.clientPort",
-					PropertiesUtil.getValue("hbase.zookeeper.property.clientPort"));
-			hbaseHandle = new HbaseHandle(configuration);
-			System.out.println("HBase配置初始化成功");
+			SystemManager.initHbase();
+		}
+		//初始化Redis
+		String redissupport = PropertiesUtil.getValue("REDISSUPPORT");
+		if("true".equalsIgnoreCase(redissupport))
+		{
+			SystemManager.initRedis();
 		}
 		
-		System.out.println("ONEDATA平台启动完成...");
+		LogUtil.info("ONEDATA平台启动完成...");
 	}
-	//初始化表格
-	private static boolean initTbales()
-	{
-		//postgresql
-		//ONEDATA_DATAINFO
-		if(!SystemDBHandle.isTableExist(OneDataServer.TablePrefix+"datainfo"))
-		{
-			String sql = "create table "+OneDataServer.TablePrefix+"datainfo"+"(id varchar(25) primary key,con varchar(250),layer varchar(60),innersql varchar(250),datatype varchar(15),oidfield varchar(50),geofield varchar(50),encode varchar(10),support varchar(50),"
-					+ "indexpath varchar(150),hbasepath varchar(150),mapserver varchar(250),maptype varchar(15),remark varchar(250),regtime varchar(25),enable varchar(10),counts integer)";
-			SystemDBHandle.exeSQLCreate(sql);
-		}
-		//ONEDATA_SHAREINFO
-		if(!SystemDBHandle.isTableExist(OneDataServer.TablePrefix+"shareinfo"))
-		{
-			String sql = "create table "+OneDataServer.TablePrefix+"shareinfo"+"(id varchar(25) primary key,remark varchar(250),url varchar(500),operation varchar(10),token varchar(100),sharedate varchar(25))";
-			SystemDBHandle.exeSQLCreate(sql);
-		}
-		//sqlite
-		//ONEDATA_VISIT
-		if(!SQLITEDBHandle.isTableExist(OneDataServer.TablePrefix+"visit"))
-		{
-			String sql = "create table "+OneDataServer.TablePrefix+"visit"+"(ID INTEGER PRIMARY KEY AUTOINCREMENT,REQ_TIME TEXT,REQ_IP TEXT,REQ_SERVER TEXT,REQ_INTERFACE TEXT,REQ_KEYWORD TEXT,TOKEN TEXT,USERTYPE TEXT,RESULTS TEXT,REMARKS TEXT)";
-			SQLITEDBHandle.exeSQLCreate(sql);
-		}
-		//ONEDATA_TOKEN
-		if(!SQLITEDBHandle.isTableExist(OneDataServer.TablePrefix+"token"))
-		{
-			String sql = "create table "+OneDataServer.TablePrefix+"token"+"(TOKEN_ID TEXT PRIMARY KEY,TOKEN_PHONE TEXT,TOKEN_COMPANY TEXT,TOKEN_NAME TEXT,TOKEN_TYPE TEXT,TOKEN_VALUE TEXT,TOKEN_STATE TEXT,TOKEN_DATE TEXT,TOKEN_NEWDATE TEXT)";
-			SQLITEDBHandle.exeSQLCreate(sql);
-		}
-		return true;
-	}
+	
 	//初始化服务节点
 	private static void initServerNode()
 	{
 		String ServerNode = PropertiesUtil.getValue("SERVER_URL");
 		//判断得到当前节点IP
-		String suburl = ":8090/ONEDATA";
+		String suburl = ":8090/onedata";
 		String portproject = PropertiesUtil.getValue("PORTPROJECT");
 		if(portproject != null && !"".equalsIgnoreCase(portproject))
 		{
@@ -221,58 +252,19 @@ public class OneDataServer {
 		return now.getTime();
 	}
 	
-	public static String getTableIndexPath(String table)
+	public static String getYear()
 	{
-		String indexpath = PropertiesUtil.getValue("SERVER_INDEXPATH");
-		if(!indexpath.endsWith("/"))
-		{
-			indexpath += "/";
-		}
 		Calendar now = Calendar.getInstance();
 		int year = now.get(Calendar.YEAR);
-		int month = now.get(Calendar.MONTH) + 1;
-		indexpath += year+"/"+month+"/";
-		String path = indexpath+table;
-		File file = new File(path);
-		if(file.exists())
-		{
-			path = indexpath+table+RandomIDUtil.getDate("_");
-			file = new File(path);
-		}
-		file.mkdirs();
-		return path;
+		return String.valueOf(year);
 	}
 	
-	public static IndexSearcher getTableSeracher(String path)
+	public static String getMonth()
 	{
-		if(tableReader.containsKey(path))
-		{
-			return  new IndexSearcher(tableReader.get(path));
-		}
-		else
-		{
-			try 
-			{
-				Directory dir = FSDirectory.open(Paths.get(path));
-				if(DirectoryReader.indexExists(dir))
-				{
-					IndexReader reader = DirectoryReader.open(dir);
-					IndexSearcher searcher = new IndexSearcher(reader);
-					tableReader.put(path, reader);
-					tableOrder.offer(path);
-					return searcher;
-				}
-				else
-				{
-					return null;
-				}
-			}catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				LogUtil.error("读取索引出现错误："+e.getMessage());
-				return null;
-			}
-		}
+		Calendar now = Calendar.getInstance();
+		int month = now.get(Calendar.MONTH) + 1;
+		return String.valueOf(month);
 	}
+	
 
 }

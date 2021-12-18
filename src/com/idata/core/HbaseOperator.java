@@ -65,7 +65,7 @@ public class HbaseOperator {
 		{
 			idfield = "oid";
 		}
-		String rowkey = filter.getKeywords();
+		String rowkey = filter.getQueryvalues();
 		Delete d = new Delete(Bytes.toBytes(rowkey));
 		return OneDataServer.hbaseHandle.delete(filter.getLayer(), d);
 	}
@@ -151,7 +151,7 @@ public class HbaseOperator {
 		//get scan
 		if(filter.getIdfield() != null && filter.getIdfield().equalsIgnoreCase(filter.getQueryfields()))
 		{
-			Get get = new Get(filter.getKeywords().getBytes());
+			Get get = new Get(filter.getQueryvalues().getBytes());
 			Scan sc = new Scan(get);
 			return sc;
 		}
@@ -160,7 +160,7 @@ public class HbaseOperator {
 		FilterList filterList = null;
 		if("query".equalsIgnoreCase(filter.getOperation()))
 		{
-			if(filter.getOutFields() == null || "".equalsIgnoreCase(filter.getOutFields()))
+			if(filter.getOutfields() == null || "".equalsIgnoreCase(filter.getOutfields()))
 			{
 				//全部输出
 				sc.addColumn(Bytes.toBytes("out"), Bytes.toBytes("all_json_data"));
@@ -168,7 +168,7 @@ public class HbaseOperator {
 			else
 			{
 				//指定输出
-				String[] fileds = filter.getOutFields().split(",");
+				String[] fileds = filter.getOutfields().split(",");
 				for(int i=0;i<fileds.length;i++)
 				{
 					if(filter.getGeofield() != null && filter.getGeofield().equalsIgnoreCase(fileds[i]))
@@ -197,7 +197,7 @@ public class HbaseOperator {
 		{
 			String[] qfields = filter.getQueryfields().split(",");
 			String[] qopers = filter.getQueryoperates().split(",");
-			String[] keywords = filter.getKeywords().split(",");
+			String[] keywords = filter.getQueryvalues().split(",");
 			//String[] qrelas = filter.getQueryrelations().split(",");
 			
 			if("or".equalsIgnoreCase(filter.getQueryrelations()) || filter.getQueryrelations().contains("or"))

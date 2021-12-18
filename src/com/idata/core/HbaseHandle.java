@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.idata.data.IDataDriver;
+import com.idata.tool.LogUtil;
 import com.ojdbc.sql.Value;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.prep.PreparedGeometry;
@@ -120,7 +121,7 @@ public class HbaseHandle {
 	        List<String> tables = new ArrayList<String>();
 	        if (tableNames.length == 0)
 	        {
-	        	System.out.println("HBase has no table");
+	        	LogUtil.info("HBase has no table");
 	        }
 	        else 
 	        {
@@ -172,7 +173,7 @@ public class HbaseHandle {
 	        boolean flag = admin.tableExists(tableName);
 	        if (flag) 
 	        {
-	        	System.out.println("Table has existed");
+	        	LogUtil.info("Table has existed");
 	            return !flag;
 	        }
 	        else 
@@ -241,7 +242,7 @@ public class HbaseHandle {
 	        }
 	        else 
 	        {
-	        	System.out.println("Table is not exist");
+	        	LogUtil.info("Table is not exist");
 	            return flag;
 	        }
 	    }
@@ -421,7 +422,7 @@ public class HbaseHandle {
 				{
 					size = aggregationClient.rowCount(tableName, new LongColumnInterpreter(), scan);
 					aggregationClient.close();
-					System.out.println("size:"+size);
+					LogUtil.info("size:"+size);
 				} catch (Throwable e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -577,7 +578,7 @@ public class HbaseHandle {
 				                	}
 				                	else
 				                	{
-				                		if(filter.getOutFields().contains(colName))
+				                		if(filter.getOutfields().contains(colName))
 				                		{
 				                			s.addProperty(colName, new Value().setString_value(value));
 				                		}
@@ -596,7 +597,7 @@ public class HbaseHandle {
 				}
 				
 			}
-			IDataDriver.resultSize.put(filter.toString(), resultsize);
+			IDataDriver.resultSize.add(filter.toString(), resultsize);
 			rs.close();
 			t.close();
 			return so;
